@@ -1,7 +1,7 @@
 'use strict';
 (function () {
-    // Public, read-only leaderboard + ILL. Data comes from data/levels.js and
-    // data/ill.js (loaded as <script>, so this works on file:// and on Vercel).
+    // Public, read-only leaderboard. Data comes from data/levels.js, loaded so that
+    // this works both on file:// and on the deployed site.
     const levelListEl = document.getElementById('levelList');
     const hero = {
         title: document.getElementById('heroTitle'),
@@ -12,11 +12,6 @@
         media: document.getElementById('heroMedia'),
         verifier: document.getElementById('heroVerifier')
     };
-    const leaderboardView = document.getElementById('leaderboardView');
-    const illView = document.getElementById('illView');
-    const illList = document.getElementById('illList');
-    const navIll = document.getElementById('navIll');
-
     let levels = [];
 
     function formatPoints(p) {
@@ -61,9 +56,15 @@
                 const start = text.indexOf('{');
                 const end = text.lastIndexOf('}');
                 if (start < 0 || end <= start) throw new Error('no object in ' + path);
-                return JSON.parse(text.slice(start, end + 1));
+                // JS allows a trailing comma before ] or }, JSON does not. Strip them so
+                // hand-edited data files still parse on the deployed site.
+                const body = text.slice(start, end + 1).replace(/,(\s*[\]}])/g, '$1');
+                return JSON.parse(body);
             })
-            .catch(() => null);
+            .catch(err => {
+                console.error('Failed to load ' + path + ':', err);
+                return null;
+            });
     }
 
     function renderList() {
@@ -143,66 +144,9 @@
         levelListEl.appendChild(msg);
     }
 
-    function getIllEntries() {
-        const g = window.WBDL_ILL;
-        if (!g) return [];
-        if (Array.isArray(g)) return g;
-        if (Array.isArray(g.entries)) return g.entries;
-        if (Array.isArray(g.ill)) return g.ill;
-        return [];
-    }
-
-    function renderIll() {
-        illList.textContent = '';
-        const entries = getIllEntries();
-        if (!entries.length) {
-            const msg = document.createElement('div');
-            msg.className = 'cl-body';
-            msg.textContent = 'No ILL entries yet.';
-            illList.appendChild(msg);
-            return;
-        }
-        entries.forEach(e => {
-            const card = document.createElement('div');
-            card.className = 'cl-card';
-            if (e.date) {
-                const d = document.createElement('div');
-                d.className = 'cl-date';
-                d.textContent = e.date;
-                card.appendChild(d);
-            }
-            if (e.title) {
-                const t = document.createElement('div');
-                t.className = 'cl-title';
-                t.textContent = e.title;
-                card.appendChild(t);
-            }
-            if (e.body) {
-                const b = document.createElement('div');
-                b.className = 'cl-body';
-                b.textContent = e.body;
-                card.appendChild(b);
-            }
-            illList.appendChild(card);
-        });
-    }
-
-    function route() {
-        const isIll = (location.hash || '').replace('#', '').toLowerCase() === 'ill';
-        leaderboardView.style.display = isIll ? 'none' : '';
-        illView.style.display = isIll ? '' : 'none';
-        if (navIll) navIll.classList.toggle('active', isIll);
-        if (isIll) renderIll();
-        window.scrollTo(0, 0);
-    }
-
     // init
-    Promise.all([
-        loadData('data/levels.js', 'WBDL_LEVELS'),
-        loadData('data/ill.js', 'WBDL_ILL')
-    ]).then(([levelsData, illData]) => {
+    loadData('data/levels.js', 'WBDL_LEVELS').then(levelsData => {
         if (levelsData) window.WBDL_LEVELS = levelsData;
-        if (illData) window.WBDL_ILL = illData;
 
         levels = getData();
         if (levels.length) {
@@ -211,7 +155,5 @@
         } else {
             showEmpty();
         }
-        window.addEventListener('hashchange', route);
-        route();
     });
 })();

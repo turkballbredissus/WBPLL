@@ -9,6 +9,6 @@ window.WBDL_LEVELS = {
       "version": "2.2",
       "added": "31 July 2026",
       "image": "https://www.youtube.com/embed/o5SX6quoW3s"
-    },
+    }
   ]
 };
