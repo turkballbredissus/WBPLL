@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JDDL</title>
+    <meta name="description" content="Web Browser Physically Impossible Levels List">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="#">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPILL</span>
+        </a>
+        <span class="links">
+        </span>
+    </nav>
+
+    <div id="leaderboardView">
+        <div class="shell">
+            <aside>
+                <div class="level-list" id="levelList"></div>
+            </aside>
+            <main>
+                <article class="hero">
+                    <div class="hero-top">
+                        <div>
+                            <h1 class="hero-title" id="heroTitle">—</h1>
+                            <div class="hero-sub">
+                                <span class="pub">Published by <b id="heroPub">—</b></span>
+                                <span class="id-badge">ID: <span id="heroId">—</span></span>
+                            </div>
+                        </div>
+                        <div class="hero-meta-top">
+                            Level made in <span id="heroVersion">2.2</span><br>
+                            Uploaded: <span id="heroUploaded">—</span>
+                        </div>
+                    </div>
+                    <div class="hero-media" id="heroMedia"></div>
+                    <div class="hero-foot">Verifier: <b id="heroVerifier">—</b></div>
+                </article>
+            </main>
+        </div>
+    </div>
+
+    <!-- app.js loads data/levels.js itself; ILL functionality removed from this page -->
+    <script src="app.js" defer></script>
+</body>
+</html>
