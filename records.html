@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a record | WBPILL</title>
+    <meta name="description" content="Submit a record to the WBPILL list">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="index.html">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPILL</span>
+        </a>
+        <span class="links">
+            <a href="index.html">Leaderboard</a>
+            <a href="submit.html">Submit a level</a>
+            <a href="records.html" class="active">Submit a record</a>
+        </span>
+    </nav>
+
+    <div class="form-shell">
+        <h1 class="form-title">Submit a record</h1>
+        <p class="form-intro">
+            These levels are not beatable, so a record is how far you got. Every record is
+            reviewed against the proof video before it appears under a level.
+        </p>
+
+        <form id="recordForm" novalidate>
+            <div class="field" id="f-player">
+                <label for="in-player">Player name</label>
+                <input type="text" id="in-player" name="player" maxlength="60" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-level">
+                <label for="in-level">Level</label>
+                <select id="in-level" name="level">
+                    <option value="">Loading levels</option>
+                </select>
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-percent">
+                <label for="in-percent">
+                    Percent reached
+                    <span class="hint">A whole number from 1 to 100.</span>
+                </label>
+                <input type="number" id="in-percent" name="percent" min="1" max="100" step="1" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-proof">
+                <label for="in-proof">
+                    Proof link
+                    <span class="hint">A YouTube video showing the attempt, unedited.</span>
+                </label>
+                <input type="url" id="in-proof" name="proof" maxlength="300" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="hp" aria-hidden="true">
+                <label for="in-website">Leave this empty</label>
+                <input type="text" id="in-website" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <button type="submit" class="btn-submit" id="recordBtn">Send record</button>
+            <p class="form-note" id="recordNote"></p>
+        </form>
+
+        <div class="form-done hidden" id="recordDone"></div>
+    </div>
+
+    <script src="loader.js" defer></script>
+    <script src="records.js" defer></script>
+</body>
+</html>

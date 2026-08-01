@@ -10,7 +10,8 @@
         version: document.getElementById('heroVersion'),
         uploaded: document.getElementById('heroUploaded'),
         media: document.getElementById('heroMedia'),
-        verifier: document.getElementById('heroVerifier')
+        verifier: document.getElementById('heroVerifier'),
+        records: document.getElementById('heroRecords')
     };
     let levels = [];
 
@@ -36,36 +37,8 @@
         return g && Array.isArray(g.levels) ? g.levels : [];
     }
 
-    // Load a data/*.js file. On the deployed (http/https) site we fetch it as TEXT and
-    // pull the JSON object out of it, so the data is parsed as inert data and never
-    // executed as code. On file:// (local double-click), fetch is blocked, so we fall
-    // back to loading it as a <script> that sets the global — fine for your own machine.
-    function loadData(path, globalName) {
-        if (location.protocol === 'file:') {
-            return new Promise(resolve => {
-                const sc = document.createElement('script');
-                sc.src = path;
-                sc.onload = () => resolve(window[globalName] || null);
-                sc.onerror = () => resolve(null);
-                document.head.appendChild(sc);
-            });
-        }
-        return fetch(path)
-            .then(r => (r.ok ? r.text() : Promise.reject(new Error(String(r.status)))))
-            .then(text => {
-                const start = text.indexOf('{');
-                const end = text.lastIndexOf('}');
-                if (start < 0 || end <= start) throw new Error('no object in ' + path);
-                // JS allows a trailing comma before ] or }, JSON does not. Strip them so
-                // hand-edited data files still parse on the deployed site.
-                const body = text.slice(start, end + 1).replace(/,(\s*[\]}])/g, '$1');
-                return JSON.parse(body);
-            })
-            .catch(err => {
-                console.error('Failed to load ' + path + ':', err);
-                return null;
-            });
-    }
+    // Parsing rules live in loader.js so the record form uses the same ones.
+    const loadData = window.WBDLLoad;
 
     function renderList() {
         levelListEl.textContent = '';
@@ -122,6 +95,61 @@
         hero.media.style.backgroundImage = img ? `url("${img}")` : 'linear-gradient(135deg, #1c1c20, #0e0e10)';
     }
 
+    // Nobody finishes these levels, so a record is how far someone got. Highest first.
+    function renderRecords(lvl) {
+        if (!hero.records) return;
+        hero.records.textContent = '';
+
+        const list = Array.isArray(lvl.records) ? lvl.records.slice() : [];
+        list.sort((a, b) => Number(b.percent || 0) - Number(a.percent || 0));
+
+        const head = document.createElement('div');
+        head.className = 'rec-head';
+        head.textContent = list.length
+            ? 'Records (' + list.length + ')'
+            : 'Records';
+        hero.records.appendChild(head);
+
+        if (!list.length) {
+            const none = document.createElement('div');
+            none.className = 'rec-none';
+            none.textContent = 'No records on this level yet.';
+            hero.records.appendChild(none);
+            return;
+        }
+
+        list.forEach((rec, idx) => {
+            const row = document.createElement('div');
+            row.className = 'rec-row';
+
+            const pos = document.createElement('div');
+            pos.className = 'rec-pos';
+            pos.textContent = '#' + (idx + 1);
+
+            const who = document.createElement('div');
+            who.className = 'rec-player';
+            who.textContent = rec.player || 'unknown';
+
+            const pct = document.createElement('div');
+            pct.className = 'rec-pct';
+            pct.textContent = (Number(rec.percent) || 0) + '%';
+
+            row.append(pos, who, pct);
+
+            const proof = safeImageUrl(rec.proof);
+            if (proof) {
+                const a = document.createElement('a');
+                a.className = 'rec-proof';
+                a.href = proof;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = 'proof';
+                row.appendChild(a);
+            }
+            hero.records.appendChild(row);
+        });
+    }
+
     function selectLevel(i) {
         const lvl = levels[i];
         if (!lvl) return;
@@ -132,6 +160,7 @@
         hero.uploaded.textContent = lvl.added || 'TBD';
         hero.verifier.textContent = lvl.verifier || '—';
         setMedia(lvl);
+        renderRecords(lvl);
         Array.from(levelListEl.children).forEach((el, idx) => el.classList.toggle('active', idx === i));
     }
 

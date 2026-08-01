@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a level | WBPILL</title>
+    <meta name="description" content="Submit a level to the WBPILL list">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="index.html">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPILL</span>
+        </a>
+        <span class="links">
+            <a href="index.html">Leaderboard</a>
+            <a href="submit.html" class="active">Submit</a>
+        </span>
+    </nav>
+
+    <div class="form-shell">
+        <h1 class="form-title">Submit a level</h1>
+        <p class="form-intro">
+            Every submission is reviewed by hand before it appears on the list. The placement you
+            enter is a suggestion, and the final position is decided during review.
+        </p>
+
+        <form id="submitForm" novalidate>
+            <div class="field" id="f-name">
+                <label for="in-name">Level name</label>
+                <input type="text" id="in-name" name="name" maxlength="100" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-publisher">
+                <label for="in-publisher">Level publisher</label>
+                <input type="text" id="in-publisher" name="publisher" maxlength="60" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-placement">
+                <label for="in-placement">
+                    Personal placement
+                    <span class="hint">Where you think it belongs on the list, as a number.</span>
+                </label>
+                <input type="number" id="in-placement" name="placement" min="1" max="999" step="1" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-id">
+                <label for="in-id">
+                    Level ID
+                    <span class="hint">Digits only.</span>
+                </label>
+                <input type="text" id="in-id" name="levelId" inputmode="numeric" maxlength="12" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-showcase">
+                <label for="in-showcase">
+                    Showcase link
+                    <span class="hint">A YouTube link showing the level.</span>
+                </label>
+                <input type="url" id="in-showcase" name="showcase" maxlength="300" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="hp" aria-hidden="true">
+                <label for="in-website">Leave this empty</label>
+                <input type="text" id="in-website" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <button type="submit" class="btn-submit" id="submitBtn">Send submission</button>
+            <p class="form-note" id="formNote"></p>
+        </form>
+
+        <div class="form-done hidden" id="formDone"></div>
+    </div>
+
+    <script src="submit.js" defer></script>
+</body>
+</html>

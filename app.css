@@ -112,6 +112,87 @@ a { color: inherit; }
 .hero-foot { margin-top: 18px; text-align: center; color: var(--muted); font-size: 0.95rem; }
 .hero-foot b { color: var(--text); }
 
+/* Records under a level */
+.records { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
+.rec-head { color: var(--text); font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; }
+.rec-none { color: var(--muted); font-size: 0.88rem; }
+.rec-row {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr) 60px auto;
+    gap: 12px;
+    align-items: center;
+    padding: 9px 12px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 7px;
+}
+.rec-pos { color: var(--accent); font-weight: 800; font-size: 0.9rem; text-align: center; }
+.rec-player { color: var(--text); font-weight: 700; font-size: 0.92rem; overflow-wrap: anywhere; }
+.rec-pct { color: var(--text); font-weight: 800; font-size: 0.92rem; text-align: right; }
+.rec-proof {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    transition: color 0.12s ease, border-color 0.12s ease;
+}
+.rec-proof:hover { color: var(--text); border-color: #4a4a50; }
+
+/* Submission form */
+.form-shell { max-width: 640px; margin: 0 auto; padding: 30px 26px 60px; }
+.form-title { margin: 0 0 10px; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; }
+.form-intro { color: var(--muted); font-size: 0.95rem; line-height: 1.65; margin: 0 0 28px; }
+.field { margin-bottom: 18px; }
+.field label { display: block; color: var(--text); font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+.field .hint { display: block; color: var(--muted); font-weight: 400; font-size: 0.82rem; margin-top: 3px; }
+.field input, .field select {
+    width: 100%;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 13px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: border-color 0.12s ease;
+}
+.field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+.field.invalid input, .field.invalid select { border-color: var(--accent); }
+.field .err { display: none; color: var(--accent); font-size: 0.82rem; margin-top: 5px; }
+.field.invalid .err { display: block; }
+
+.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.btn-submit {
+    background: var(--accent);
+    color: #fff;
+    border: 0;
+    border-radius: 8px;
+    padding: 12px 22px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+}
+.btn-submit:hover { opacity: 0.85; }
+.btn-submit:disabled { opacity: 0.5; cursor: default; }
+
+.form-note { color: var(--muted); font-size: 0.85rem; line-height: 1.6; margin-top: 16px; }
+.form-done {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px;
+    color: var(--text);
+    line-height: 1.6;
+}
+.form-done b { color: var(--accent); }
+
 @media (max-width: 1080px) {
     .shell { grid-template-columns: 1fr; }
     .level-list { max-height: none; }

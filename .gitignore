@@ -1,0 +1,12 @@
+# Local review tool, never deployed
+admin.html
+
+# Setup notes for connecting the Google Forms, only useful to you
+SETUP.md
+
+# Stale, describes an older version of this project
+README.md
+
+# Temporary test files
+_h_*.html
+_harness.html
