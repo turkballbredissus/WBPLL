@@ -279,41 +279,129 @@
         wrap.textContent = '';
         wrap.appendChild(el('div', 'section-head', 'The list'));
         wrap.appendChild(el('div', 'section-sub',
-            'Type a rank and press Enter to move a level. Removing one takes its records with it.'));
+            'Drag a level by its handle to move it. The box is there for long jumps - ' +
+            'type a rank and press Enter. Either way every other rank renumbers itself. ' +
+            'Removing a level takes its records with it.'));
 
         if (!levels.length) {
             wrap.appendChild(el('div', 'q-empty', 'Nothing on the list yet.'));
             return;
         }
 
-        levels.forEach(lvl => {
-            const row = el('div', 'list-row');
-            row.appendChild(el('span', 'rank', '#' + lvl.position));
+        // Rows live in their own container so the drag code can treat child
+        // index and rank as the same thing.
+        const listEl = el('div', 'drag-list');
+        levels.forEach(lvl => listEl.appendChild(levelRow(lvl)));
+        wrap.appendChild(listEl);
+        enableDrag(listEl);
+    }
 
-            const mid = el('div', '');
-            mid.appendChild(el('div', 'li-name', lvl.name));
-            mid.appendChild(el('div', 'li-pub', 'published by ' + lvl.publisher));
-            row.appendChild(mid);
+    function levelRow(lvl) {
+        const row = el('div', 'list-row drag-row');
+        row.dataset.id = lvl.id;
 
-            const jump = el('input', 'pos-box');
-            jump.type = 'number';
-            jump.min = 1;
-            jump.max = levels.length;
-            jump.value = lvl.position;
-            jump.title = 'Move to this rank';
-            jump.addEventListener('keydown', e => {
-                if (e.key === 'Enter') move(lvl, Number(jump.value));
-            });
-            row.appendChild(jump);
+        const grip = el('div', 'drag-handle', '⠿');
+        grip.title = 'Drag to reorder';
+        row.appendChild(grip);
 
-            const del = el('button', 'btn-remove', '×');
-            del.type = 'button';
-            del.title = 'Remove from the list';
-            del.addEventListener('click', () => remove(lvl));
-            row.appendChild(del);
+        row.appendChild(el('span', 'rank', '#' + lvl.position));
 
-            wrap.appendChild(row);
+        const mid = el('div', '');
+        mid.appendChild(el('div', 'li-name', lvl.name));
+        mid.appendChild(el('div', 'li-pub', 'published by ' + lvl.publisher));
+        row.appendChild(mid);
+
+        const jump = el('input', 'pos-box');
+        jump.type = 'number';
+        jump.min = 1;
+        jump.max = levels.length;
+        jump.value = lvl.position;
+        jump.title = 'Jump to this rank';
+        jump.addEventListener('keydown', e => {
+            if (e.key === 'Enter') move(lvl, Number(jump.value));
         });
+        row.appendChild(jump);
+
+        const del = el('button', 'btn-remove', '×');
+        del.type = 'button';
+        del.title = 'Remove from the list';
+        del.addEventListener('click', () => remove(lvl));
+        row.appendChild(del);
+
+        return row;
+    }
+
+    // Drag to reorder. Rows are a uniform height, so the rank the pointer is
+    // over is just how many row-heights it has travelled. The rows in between
+    // slide out of the way to show where it would land, and nothing is written
+    // to the database until the drag ends - so letting go back where you
+    // started costs nothing.
+    function enableDrag(listEl) {
+        let row = null, rows = [], from = 0, to = 0, startY = 0, step = 0;
+
+        listEl.addEventListener('pointerdown', e => {
+            const grip = e.target.closest('.drag-handle');
+            if (!grip || busy) return;
+            e.preventDefault();
+
+            row = grip.closest('.drag-row');
+            rows = Array.from(listEl.children);
+            from = rows.indexOf(row);
+            to = from;
+            startY = e.clientY;
+
+            // Height of one row plus the gap under it.
+            const box = row.getBoundingClientRect();
+            step = box.height + 8;
+
+            row.classList.add('dragging');
+            listEl.classList.add('drag-active');
+            // Keeps the moves coming even when the pointer outruns the row.
+            try { grip.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
+        });
+
+        listEl.addEventListener('pointermove', e => {
+            if (!row) return;
+            const dy = e.clientY - startY;
+            row.style.transform = 'translateY(' + dy + 'px)';
+
+            const next = Math.max(0, Math.min(rows.length - 1, from + Math.round(dy / step)));
+            if (next === to) return;
+            to = next;
+
+            // Open a gap at the target by nudging everything between.
+            rows.forEach((r, i) => {
+                if (r === row) return;
+                let shift = 0;
+                if (from < to && i > from && i <= to) shift = -step;
+                else if (from > to && i >= to && i < from) shift = step;
+                r.style.transform = shift ? 'translateY(' + shift + 'px)' : '';
+            });
+        });
+
+        function end() {
+            if (!row) return;
+            const moved = to !== from;
+            const lvl = levels[from];
+
+            rows.forEach(r => { r.style.transform = ''; });
+            row.classList.remove('dragging');
+            listEl.classList.remove('drag-active');
+            row = null;
+
+            if (moved && lvl) {
+                // Renumber on screen straight away, then let the refresh that
+                // follows the save confirm it.
+                const copy = levels.slice();
+                copy.splice(to, 0, copy.splice(from, 1)[0]);
+                levels = copy.map((l, i) => Object.assign({}, l, { position: i + 1 }));
+                renderList();
+                move(lvl, to + 1);
+            }
+        }
+
+        listEl.addEventListener('pointerup', end);
+        listEl.addEventListener('pointercancel', end);
     }
 
     async function move(lvl, to) {

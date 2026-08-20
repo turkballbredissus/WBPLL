@@ -414,6 +414,35 @@ form.locked .field { opacity: 0.5; }
     margin-bottom: 8px;
 }
 .user-row { grid-template-columns: 96px minmax(0, 1fr) 140px; }
+
+/* Drag to reorder the list */
+.drag-row {
+    position: relative;
+    grid-template-columns: 26px 46px minmax(0, 1fr) 74px 34px;
+    transition: transform 0.14s ease, border-color 0.15s ease;
+}
+.drag-handle {
+    color: #55555c;
+    font-size: 1.15rem;
+    line-height: 1;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+    /* Stops a touch drag from scrolling the page instead of moving the row. */
+    touch-action: none;
+}
+.drag-handle:hover { color: var(--text); }
+.drag-row.dragging {
+    transition: none;
+    z-index: 5;
+    border-color: var(--accent);
+    background: var(--bg3);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+.drag-row.dragging .drag-handle { cursor: grabbing; }
+/* While a row is in flight, nothing else should highlight or take a click. */
+.drag-list.drag-active { user-select: none; }
+.drag-list.drag-active .drag-row:not(.dragging) { pointer-events: none; }
 /* Players */
 .name-link { text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
@@ -517,5 +546,6 @@ form.locked .field { opacity: 0.5; }
     .q-actions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .q-actions > * { flex: 1; }
     .list-row { grid-template-columns: 44px minmax(0, 1fr) 66px 34px; }
+    .drag-row { grid-template-columns: 24px 38px minmax(0, 1fr) 60px 30px; gap: 8px; }
     .user-row { grid-template-columns: 84px minmax(0, 1fr) 120px; }
 }
