@@ -7,6 +7,9 @@
     --muted: #8a8a90;
     --accent: #ff2e2e;
     --good: #33bd6b;
+    --mod: #ff4d4d;   /* moderator */
+    --adm: #5aa6ff;   /* admin */
+    --own: #ffd23f;   /* owner */
 }
 * , *::before, *::after { box-sizing: border-box; }
 body {
@@ -225,9 +228,17 @@ a { color: inherit; }
     color: var(--muted);
     background: var(--bg3);
 }
-.role-moderator { color: #6fa8ff; border-color: #2c4370; }
-.role-admin { color: #ffb54a; border-color: #6b4c1c; }
-.role-owner { color: var(--accent); border-color: #6b2020; }
+.role-moderator { color: var(--mod); border-color: #6b2020; }
+.role-admin { color: var(--adm); border-color: #24487d; }
+.role-owner { color: var(--own); border-color: #6d5a12; }
+
+/* A display name is tinted by rank wherever it appears, so you can tell who
+   someone is without hunting for a badge. Plain users stay the normal colour. */
+.name { font-weight: 700; }
+.name-user { color: var(--text); }
+.name-moderator { color: var(--mod); }
+.name-admin { color: var(--adm); }
+.name-owner { color: var(--own); }
 
 /* Sign in / sign up */
 .tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
@@ -403,6 +414,45 @@ form.locked .field { opacity: 0.5; }
     margin-bottom: 8px;
 }
 .user-row { grid-template-columns: 96px minmax(0, 1fr) 140px; }
+/* Players */
+.name-link { text-decoration: none; }
+.name-link:hover { text-decoration: underline; }
+.back-link {
+    display: inline-block;
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    margin-bottom: 18px;
+}
+.back-link:hover { color: var(--text); }
+
+.roster {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 12px;
+}
+.roster-card {
+    display: block;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.roster-card:hover { border-color: var(--accent); background: var(--bg3); }
+.roster-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.roster-top .name { font-size: 1.02rem; }
+.roster-sub { color: var(--muted); font-size: 0.8rem; margin-top: 6px; }
+
+.profile-head { margin-bottom: 8px; }
+.profile-head .form-title { margin-bottom: 12px; }
+.profile-badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.profile-joined { color: var(--muted); font-size: 0.85rem; }
+.rename-row { display: flex; gap: 10px; align-items: center; }
+.rename-row .q-note { margin-top: 0; max-width: 280px; }
+
 .live-level {
     color: var(--muted);
     font-size: 0.8rem;

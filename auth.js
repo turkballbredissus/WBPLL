@@ -82,6 +82,43 @@ window.WB = (function () {
         return n;
     }
 
+    // One place decides how a display name looks, so the colours cannot drift
+    // apart between the leaderboard, the queues and the profile pages.
+    function nameEl(text, role, tag) {
+        const r = RANK[role] === undefined ? 'user' : role;
+        return el(tag || 'span', 'name name-' + r, text || 'unknown');
+    }
+
+    function roleChip(role) {
+        return el('span', 'role-chip role-' + role, role);
+    }
+
+    // id -> {display_name, role} for everyone, fetched once per page. Profiles
+    // are public, so this works for signed-out visitors too and is what lets a
+    // name be tinted anywhere it shows up.
+    let peoplePromise = null;
+    function people() {
+        if (!peoplePromise) {
+            peoplePromise = (!client
+                ? Promise.resolve({})
+                : client.from('profiles').select('id, display_name, role').then(res => {
+                    const map = {};
+                    ((res && res.data) || []).forEach(p => { map[p.id] = p; });
+                    return map;
+                }).catch(() => ({})));
+        }
+        return peoplePromise;
+    }
+
+    // Links to a profile, or to the members list when there is no account.
+    function profileLink(text, role, id) {
+        if (!id) return nameEl(text, role);
+        const a = nameEl(text, role, 'a');
+        a.href = 'profile.html?id=' + encodeURIComponent(id);
+        a.classList.add('name-link');
+        return a;
+    }
+
     // Supabase errors arrive in a few shapes depending on whether they came
     // from a policy, a constraint or a raise in one of the functions.
     function errText(err) {
@@ -111,6 +148,7 @@ window.WB = (function () {
         const here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
         if (links) {
+            links.appendChild(toolLink('profile.html', 'Players', here));
             if (atLeast('moderator')) links.appendChild(toolLink('modtools.html', 'Mod Tools', here));
             if (atLeast('admin')) links.appendChild(toolLink('admintools.html', 'Admin Tools', here));
         }
@@ -128,9 +166,10 @@ window.WB = (function () {
             return;
         }
 
-        const who = el('span', 'acct-name', displayName());
+        const who = profileLink(displayName(), role(), session.user.id);
+        who.classList.add('acct-name');
         slot.appendChild(who);
-        if (atLeast('moderator')) slot.appendChild(el('span', 'role-chip role-' + role(), role()));
+        if (atLeast('moderator')) slot.appendChild(roleChip(role()));
 
         const out = el('button', 'acct-out', 'Sign out');
         out.type = 'button';
@@ -186,6 +225,10 @@ window.WB = (function () {
         user: function () { return session ? session.user : null; },
         profile: function () { return profile; },
         el: el,
+        people: people,
+        nameEl: nameEl,
+        roleChip: roleChip,
+        profileLink: profileLink,
         errText: errText,
         fmtWhen: fmtWhen
     };

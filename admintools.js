@@ -8,7 +8,8 @@
     let queue = [];
     let levels = [];
     let history = [];
-    let people = [];
+    let people = [];        // the Accounts panel roster, owner only
+    let peopleById = {};    // account id -> {display_name, role}, for tinting names
     let busy = false;
 
     const YT = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
@@ -54,7 +55,7 @@
         const jobs = [
             WB.client
                 .from('level_submissions')
-                .select('id, name, publisher, level_id, showcase, placement, account_name, created_at')
+                .select('id, name, publisher, level_id, showcase, placement, account_id, account_name, created_at')
                 .eq('status', 'pending')
                 .order('created_at', { ascending: true }),
             WB.client
@@ -73,6 +74,7 @@
         }
 
         const res = await Promise.all(jobs);
+        peopleById = await WB.people();
         if (res[0].error) {
             list.textContent = '';
             list.appendChild(el('div', 'q-error', WB.errText(res[0].error)));
@@ -129,7 +131,12 @@
         main.appendChild(meta);
 
         const meta2 = el('div', 'q-meta');
-        meta2.appendChild(el('span', '', 'sent by ' + (sub.account_name || 'unknown')));
+        const acct = sub.account_id ? peopleById[sub.account_id] : null;
+        const by = el('span', '', 'sent by ');
+        by.appendChild(acct
+            ? WB.profileLink(sub.account_name || acct.display_name, acct.role, acct.id)
+            : WB.nameEl(sub.account_name || 'unknown', 'user'));
+        meta2.appendChild(by);
         if (sub.created_at) meta2.appendChild(el('span', '', WB.fmtWhen(sub.created_at)));
         if (sub.placement) meta2.appendChild(el('span', 'q-ask', 'asked for #' + sub.placement));
         main.appendChild(meta2);
@@ -344,8 +351,8 @@
 
         people.forEach(p => {
             const row = el('div', 'list-row user-row');
-            row.appendChild(el('span', 'role-chip role-' + p.role, p.role));
-            row.appendChild(el('div', 'li-name', p.display_name));
+            row.appendChild(WB.roleChip(p.role));
+            row.appendChild(WB.profileLink(p.display_name, p.role, p.id));
 
             const me = WB.user();
             if (p.role === 'owner') {

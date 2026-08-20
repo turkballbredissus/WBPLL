@@ -16,6 +16,7 @@
         records: document.getElementById('heroRecords')
     };
     let levels = [];
+    let people = {};   // account id -> {display_name, role}, for tinting names
 
     function formatPoints(p) {
         const n = Number(p);
@@ -60,7 +61,7 @@
         }
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, records ( player, percent, proof )')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, records ( player, percent, proof, account_id )')
             .order('position', { ascending: true });
 
         if (error) {
@@ -156,9 +157,14 @@
             pos.className = 'rec-pos';
             pos.textContent = '#' + (idx + 1);
 
+            // The player name is whatever they typed, but if it came from an
+            // account we can tint it by rank and link through to the profile.
+            const acct = rec.account_id ? people[rec.account_id] : null;
             const who = document.createElement('div');
             who.className = 'rec-player';
-            who.textContent = rec.player || 'unknown';
+            who.appendChild(acct
+                ? WB.profileLink(rec.player || acct.display_name, acct.role, acct.id)
+                : document.createTextNode(rec.player || 'unknown'));
 
             const pct = document.createElement('div');
             pct.className = 'rec-pct';
@@ -208,10 +214,12 @@
         if (article) article.classList.add('hidden');
     }
 
-    // init - wait for the session so the nav is settled, then load the list.
+    // init - wait for the session so the nav is settled, then load the list
+    // and everyone's rank together, since record names are tinted by it.
     WB.ready()
-        .then(loadLevels)
-        .then(result => {
+        .then(() => Promise.all([loadLevels(), WB.people()]))
+        .then(([result, roster]) => {
+            people = roster || {};
             if (typeof result === 'string') {
                 showMessage(result);
                 return;

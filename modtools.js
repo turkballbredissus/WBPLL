@@ -9,7 +9,17 @@
     let queue = [];
     let liveRecords = [];   // used to warn when accepting replaces an old record
     let history = [];
+    let people = {};        // account id -> {display_name, role}
     let busy = false;
+
+    // The submitter's name, tinted by rank and linked to their profile, so you
+    // can see at a glance whether a stranger or a mod sent something.
+    function sentBy(sub) {
+        const acct = sub.account_id ? people[sub.account_id] : null;
+        return acct
+            ? WB.profileLink(sub.account_name || acct.display_name, acct.role, acct.id)
+            : WB.nameEl(sub.account_name || 'unknown', 'user');
+    }
 
     WB.guard('moderator', root).then(ok => {
         if (ok) start();
@@ -53,7 +63,7 @@
         // shows the level it belongs to even after the list gets reordered.
         const pending = WB.client
             .from('record_submissions')
-            .select('id, player, percent, proof, account_name, created_at, level_row_id, levels ( name, position )')
+            .select('id, player, percent, proof, account_id, account_name, created_at, level_row_id, levels ( name, position )')
             .eq('status', 'pending')
             .order('created_at', { ascending: true });
 
@@ -69,7 +79,8 @@
             .order('reviewed_at', { ascending: false })
             .limit(20);
 
-        const [a, b, c] = await Promise.all([pending, existing, past]);
+        const [a, b, c, roster] = await Promise.all([pending, existing, past, WB.people()]);
+        people = roster || {};
 
         if (a.error) {
             list.textContent = '';
@@ -183,7 +194,9 @@
         main.appendChild(line);
 
         const meta = el('div', 'q-meta');
-        meta.appendChild(el('span', '', 'sent by ' + (sub.account_name || 'unknown')));
+        const by = el('span', '', 'sent by ');
+        by.appendChild(sentBy(sub));
+        meta.appendChild(by);
         if (sub.created_at) meta.appendChild(el('span', '', WB.fmtWhen(sub.created_at)));
         main.appendChild(meta);
 
