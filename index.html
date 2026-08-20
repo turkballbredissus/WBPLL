@@ -19,6 +19,7 @@
             <a href="submit.html">Submit a level</a>
             <a href="records.html">Submit a record</a>
         </span>
+        <span class="nav-account" id="navAccount"></span>
     </nav>
 
     <div id="leaderboardView">
@@ -49,8 +50,10 @@
         </div>
     </div>
 
-    <!-- app.js loads data/levels.js itself, using the parser in loader.js -->
-    <script src="loader.js" defer></script>
+    <!-- The list comes from Supabase; there is no local copy of it. -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
     <script src="app.js" defer></script>
 </body>
 </html>

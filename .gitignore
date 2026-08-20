@@ -1,12 +1,12 @@
-# Local review tool, never deployed
-admin.html
+# Has your email in the owner line, and the site does not need it to run
+supabase-setup.sql
 
-# Setup notes for connecting the Google Forms, only useful to you
+# Setup and operating notes, only useful to you
 SETUP.md
 
 # Stale, describes an older version of this project
 README.md
 
-# Temporary test files
+# Local harnesses that fill the tools with fake rows
 _h_*.html
 _harness.html

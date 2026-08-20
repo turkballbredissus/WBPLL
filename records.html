@@ -19,9 +19,11 @@
             <a href="submit.html">Submit a level</a>
             <a href="records.html" class="active">Submit a record</a>
         </span>
+        <span class="nav-account" id="navAccount"></span>
     </nav>
 
     <div class="form-shell">
+        <div class="gate hidden" id="signInGate"></div>
         <h1 class="form-title">Submit a record</h1>
         <p class="form-intro">
             These levels are not beatable, so a record is how far you got. Every record is
@@ -73,7 +75,9 @@
         <div class="form-done hidden" id="recordDone"></div>
     </div>
 
-    <script src="loader.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
     <script src="records.js" defer></script>
 </body>
 </html>

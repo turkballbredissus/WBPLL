@@ -1,33 +1,17 @@
 'use strict';
 (function () {
-    // Public submission form. Posts to a Google Form's response endpoint, so the
-    // submissions collect in a Google Sheet without this site needing a backend.
-    //
-    // ----------------------------------------------------------------------
-    // CONFIG - fill these in once, from your own Google Form. See SETUP.md.
-    // ----------------------------------------------------------------------
-    const FORM_ID = '1FAIpQLSdeogQnd4eDg6M3UYE6r5ksxtAxQmxwZn7hScUX54nZ4cAclg';
-    const ENTRY = {
-        name: 'entry.1372701526',
-        publisher: 'entry.1501548599',
-        placement: 'entry.1040923498',
-        levelId: 'entry.837123941',
-        showcase: 'entry.325099746'
-    };
-    // ----------------------------------------------------------------------
-
+    // Level submissions. They go into the level_submissions table as pending
+    // rows and sit there, exactly as typed, until an admin reviews them in
+    // Admin Tools. An account is required so the queue shows who sent what.
     const form = document.getElementById('submitForm');
     const btn = document.getElementById('submitBtn');
     const note = document.getElementById('formNote');
     const done = document.getElementById('formDone');
+    const gate = document.getElementById('signInGate');
     const honeypot = document.getElementById('in-website');
+    const el = WB.el;
 
     const YT = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
-
-    function isConfigured() {
-        return !/^PASTE_/.test(FORM_ID) &&
-            Object.values(ENTRY).every(v => /^entry\.\d+$/.test(v) && v !== 'entry.0000000000');
-    }
 
     // Each rule returns an error string, or '' when the value is acceptable.
     const rules = {
@@ -101,7 +85,36 @@
         });
     });
 
-    form.addEventListener('submit', function (e) {
+    // The form is visible either way; without an account the button is off and
+    // the reason sits above it, rather than the page looking broken.
+    WB.ready().then(() => {
+        if (!WB.configured) {
+            lock('Not connected yet',
+                'The site is not wired to its backend, so submissions cannot be sent.');
+            return;
+        }
+        if (!WB.user()) {
+            lock('You need an account',
+                'Submissions carry the name of whoever sent them, so the review queue knows who to thank.',
+                true);
+        }
+    });
+
+    function lock(head, body, withLink) {
+        gate.classList.remove('hidden');
+        gate.textContent = '';
+        gate.appendChild(el('b', '', head));
+        gate.appendChild(el('div', 'gate-body', body));
+        if (withLink) {
+            const a = el('a', 'btn-submit btn-link', 'Sign in or create an account');
+            a.href = 'login.html?next=submit.html';
+            gate.appendChild(a);
+        }
+        btn.disabled = true;
+        form.classList.add('locked');
+    }
+
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
         note.textContent = '';
 
@@ -119,43 +132,43 @@
             return;
         }
 
-        if (!isConfigured()) {
-            note.textContent = 'The form is not connected yet, so nothing was sent.';
+        const user = WB.user();
+        if (!user) {
+            note.textContent = 'Sign in first, then send it.';
             return;
         }
-
-        const payload = new URLSearchParams();
-        payload.append(ENTRY.name, inputEls.name.value.trim());
-        payload.append(ENTRY.publisher, inputEls.publisher.value.trim());
-        payload.append(ENTRY.placement, inputEls.placement.value.trim());
-        payload.append(ENTRY.levelId, inputEls.levelId.value.trim());
-        payload.append(ENTRY.showcase, inputEls.showcase.value.trim());
 
         btn.disabled = true;
         btn.textContent = 'Sending';
 
-        // Google does not send CORS headers back, so the response is opaque and
-        // cannot be read. A rejected promise means the request never left.
-        fetch('https://docs.google.com/forms/d/e/' + FORM_ID + '/formResponse', {
-            method: 'POST',
-            mode: 'no-cors',
-            body: payload
-        }).then(showDone).catch(function () {
+        const { error } = await WB.client.from('level_submissions').insert({
+            name: inputEls.name.value.trim(),
+            publisher: inputEls.publisher.value.trim(),
+            level_id: inputEls.levelId.value.trim(),
+            showcase: inputEls.showcase.value.trim(),
+            placement: Number(inputEls.placement.value),
+            account_id: user.id,
+            account_name: WB.displayName()
+        });
+
+        if (error) {
             btn.disabled = false;
             btn.textContent = 'Send submission';
-            note.textContent = 'That did not send. Check your connection and try again.';
-        });
+            note.textContent = WB.errText(error);
+            return;
+        }
+        showDone();
     });
 
     function showDone() {
         form.classList.add('hidden');
+        gate.classList.add('hidden');
         done.classList.remove('hidden');
-        const h = document.createElement('b');
-        h.textContent = 'Submission received.';
-        const p = document.createElement('div');
+        done.textContent = '';
+        done.appendChild(el('b', '', 'Submission received.'));
+        const p = el('div', '', 'It goes into the review queue. If it gets added you will see it on the list.');
         p.style.marginTop = '8px';
-        p.textContent = 'It goes into the review queue. If it gets added you will see it on the list.';
-        done.append(h, p);
+        done.appendChild(p);
         window.scrollTo(0, 0);
     }
 })();

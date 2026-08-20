@@ -1,34 +1,18 @@
 'use strict';
 (function () {
-    // Record submissions. Same approach as submit.js: posts to a Google Form so the
-    // rows collect in a sheet, with no backend on this site.
-    //
-    // ----------------------------------------------------------------------
-    // CONFIG - this needs its own Google Form, separate from the level form.
-    // ----------------------------------------------------------------------
-    const FORM_ID = '1FAIpQLSfq2gySrra6D4jZQafXyJiIVHnOrLLqK6o2FzzmltrcZKvkJg';
-
-    const ENTRY = {
-        player: 'entry.1846838960',
-        level: 'entry.699998401',
-        percent: 'entry.652574810',
-        proof: 'entry.1079603762'
-    };
-    // ----------------------------------------------------------------------
-
+    // Record submissions. Same shape as submit.js, into record_submissions,
+    // where a moderator picks them up in Mod Tools. The level dropdown is built
+    // from the live list so a record can only ever point at a real level.
     const form = document.getElementById('recordForm');
     const btn = document.getElementById('recordBtn');
     const note = document.getElementById('recordNote');
     const done = document.getElementById('recordDone');
+    const gate = document.getElementById('signInGate');
     const honeypot = document.getElementById('in-website');
     const levelSelect = document.getElementById('in-level');
+    const el = WB.el;
 
     const YT = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
-
-    function isConfigured() {
-        return !/^PASTE_/.test(FORM_ID) &&
-            Object.values(ENTRY).every(v => /^entry\.\d+$/.test(v) && v !== 'entry.0000000000');
-    }
 
     const rules = {
         player(v) {
@@ -92,41 +76,76 @@
         });
     });
 
-    // Build the level dropdown from the same data the leaderboard uses, so it can
-    // never drift out of sync with what is actually on the list.
+    // The option value is the level's row id, so the record stays attached to
+    // the right level even after the list gets reordered.
     function fillLevels(levels) {
         levelSelect.textContent = '';
         if (!levels.length) {
-            const opt = document.createElement('option');
+            const opt = el('option', '', 'No levels on the list yet');
             opt.value = '';
-            opt.textContent = 'No levels on the list yet';
             levelSelect.appendChild(opt);
             levelSelect.disabled = true;
             btn.disabled = true;
             note.textContent = 'There is nothing to submit a record for yet.';
             return;
         }
-        const first = document.createElement('option');
+        const first = el('option', '', 'Pick a level');
         first.value = '';
-        first.textContent = 'Pick a level';
         levelSelect.appendChild(first);
 
-        levels.forEach((lvl, i) => {
-            const opt = document.createElement('option');
-            // Value carries the rank and name so you can tell them apart at review
-            // even if two levels share a name.
-            opt.value = '#' + (i + 1) + ' ' + (lvl.name || 'untitled');
-            opt.textContent = '#' + (i + 1) + '  ' + (lvl.name || 'untitled');
+        levels.forEach(lvl => {
+            const opt = el('option', '', '#' + lvl.position + '  ' + (lvl.name || 'untitled'));
+            opt.value = String(lvl.id);
             levelSelect.appendChild(opt);
         });
     }
 
-    window.WBDLLoad('data/levels.js', 'WBDL_LEVELS').then(data => {
-        const levels = data && Array.isArray(data.levels) ? data.levels : [];
-        fillLevels(levels);
+    async function loadLevels() {
+        if (!WB.client) return [];
+        const { data, error } = await WB.client
+            .from('levels')
+            .select('id, position, name')
+            .order('position', { ascending: true });
+        if (error) {
+            note.textContent = WB.errText(error);
+            return [];
+        }
+        return data || [];
+    }
+
+    WB.ready().then(async () => {
+        if (!WB.configured) {
+            lock('Not connected yet', 'The site is not wired to its backend, so records cannot be sent.');
+            fillLevels([]);
+            return;
+        }
+        fillLevels(await loadLevels());
+
+        if (!WB.user()) {
+            lock('You need an account',
+                'Records are checked against the account that sent them, so nobody can file one under your name.',
+                true);
+        } else if (!inputEls.player.value) {
+            // Prefilled, not forced: plenty of people go by a different name in game.
+            inputEls.player.value = WB.displayName();
+        }
     });
 
-    form.addEventListener('submit', function (e) {
+    function lock(head, body, withLink) {
+        gate.classList.remove('hidden');
+        gate.textContent = '';
+        gate.appendChild(el('b', '', head));
+        gate.appendChild(el('div', 'gate-body', body));
+        if (withLink) {
+            const a = el('a', 'btn-submit btn-link', 'Sign in or create an account');
+            a.href = 'login.html?next=records.html';
+            gate.appendChild(a);
+        }
+        btn.disabled = true;
+        form.classList.add('locked');
+    }
+
+    form.addEventListener('submit', async function (e) {
         e.preventDefault();
         note.textContent = '';
 
@@ -142,40 +161,42 @@
             return;
         }
 
-        if (!isConfigured()) {
-            note.textContent = 'The record form is not connected yet, so nothing was sent.';
+        const user = WB.user();
+        if (!user) {
+            note.textContent = 'Sign in first, then send it.';
             return;
         }
-
-        const payload = new URLSearchParams();
-        payload.append(ENTRY.player, inputEls.player.value.trim());
-        payload.append(ENTRY.level, inputEls.level.value);
-        payload.append(ENTRY.percent, inputEls.percent.value.trim());
-        payload.append(ENTRY.proof, inputEls.proof.value.trim());
 
         btn.disabled = true;
         btn.textContent = 'Sending';
 
-        fetch('https://docs.google.com/forms/d/e/' + FORM_ID + '/formResponse', {
-            method: 'POST',
-            mode: 'no-cors',
-            body: payload
-        }).then(showDone).catch(function () {
+        const { error } = await WB.client.from('record_submissions').insert({
+            level_row_id: Number(levelSelect.value),
+            player: inputEls.player.value.trim(),
+            percent: Number(inputEls.percent.value),
+            proof: inputEls.proof.value.trim(),
+            account_id: user.id,
+            account_name: WB.displayName()
+        });
+
+        if (error) {
             btn.disabled = false;
             btn.textContent = 'Send record';
-            note.textContent = 'That did not send. Check your connection and try again.';
-        });
+            note.textContent = WB.errText(error);
+            return;
+        }
+        showDone();
     });
 
     function showDone() {
         form.classList.add('hidden');
+        gate.classList.add('hidden');
         done.classList.remove('hidden');
-        const h = document.createElement('b');
-        h.textContent = 'Record received.';
-        const p = document.createElement('div');
+        done.textContent = '';
+        done.appendChild(el('b', '', 'Record received.'));
+        const p = el('div', '', 'It gets checked against the proof video before it goes under the level.');
         p.style.marginTop = '8px';
-        p.textContent = 'It gets checked against the proof video before it goes under the level.';
-        done.append(h, p);
+        done.appendChild(p);
         window.scrollTo(0, 0);
     }
 })();

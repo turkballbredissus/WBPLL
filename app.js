@@ -1,7 +1,9 @@
 'use strict';
 (function () {
-    // Public, read-only leaderboard. Data comes from data/levels.js, loaded so that
-    // this works both on file:// and on the deployed site.
+    // Public, read-only leaderboard. The list lives in Supabase, so an approval
+    // in Admin Tools shows up here on the next load with nothing to push. There
+    // is no local copy of the list any more: if the database cannot be reached,
+    // the page says so rather than showing an empty list as if it were the truth.
     const levelListEl = document.getElementById('levelList');
     const hero = {
         title: document.getElementById('heroTitle'),
@@ -32,13 +34,41 @@
         return /^https?:\/\//i.test(u) ? u.replace(/["\\]/g, '') : '';
     }
 
-    function getData() {
-        const g = window.WBDL_LEVELS;
-        return g && Array.isArray(g.levels) ? g.levels : [];
+    // The database columns and the old file format are not quite the same
+    // shape, so everything is normalised here and the rendering below never
+    // has to care which one it came from.
+    function fromDatabase(rows) {
+        return rows.map(function (r) {
+            return {
+                name: r.name,
+                publisher: r.publisher,
+                points: r.points,
+                verifier: r.verifier,
+                id: r.level_id,
+                version: r.version,
+                added: r.added,
+                image: r.image,
+                records: Array.isArray(r.records) ? r.records : []
+            };
+        });
     }
 
-    // Parsing rules live in loader.js so the record form uses the same ones.
-    const loadData = window.WBDLLoad;
+    // Resolves to an array on success, or a string explaining what went wrong.
+    async function loadLevels() {
+        if (!WB.configured) {
+            return 'The list is not connected to its database yet.';
+        }
+        const { data, error } = await WB.client
+            .from('levels')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, records ( player, percent, proof )')
+            .order('position', { ascending: true });
+
+        if (error) {
+            console.error('Could not load the list:', error.message);
+            return 'Could not reach the list right now. Try again in a minute.';
+        }
+        return fromDatabase(data || []);
+    }
 
     function renderList() {
         levelListEl.textContent = '';
@@ -164,25 +194,34 @@
         Array.from(levelListEl.children).forEach((el, idx) => el.classList.toggle('active', idx === i));
     }
 
-    function showEmpty() {
+    // With nothing to show, the hero is an empty shell full of dashes, which
+    // reads as broken rather than as empty. Take it away and leave the reason.
+    function showMessage(text) {
         levelListEl.textContent = '';
         const msg = document.createElement('div');
         msg.className = 'li-pub';
         msg.style.padding = '14px';
-        msg.textContent = 'No level data found — make sure data/levels.js is present next to this page.';
+        msg.textContent = text;
         levelListEl.appendChild(msg);
+
+        const article = document.querySelector('.hero');
+        if (article) article.classList.add('hidden');
     }
 
-    // init
-    loadData('data/levels.js', 'WBDL_LEVELS').then(levelsData => {
-        if (levelsData) window.WBDL_LEVELS = levelsData;
-
-        levels = getData();
-        if (levels.length) {
-            renderList();
-            selectLevel(0);
-        } else {
-            showEmpty();
-        }
-    });
+    // init - wait for the session so the nav is settled, then load the list.
+    WB.ready()
+        .then(loadLevels)
+        .then(result => {
+            if (typeof result === 'string') {
+                showMessage(result);
+                return;
+            }
+            levels = result;
+            if (levels.length) {
+                renderList();
+                selectLevel(0);
+            } else {
+                showMessage('No levels on the list yet.');
+            }
+        });
 })();

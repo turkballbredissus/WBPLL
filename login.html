@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - WBPILL</title>
+    <meta name="description" content="Sign in to the Web Browser Physically Impossible Levels List">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="index.html">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPILL</span>
+        </a>
+        <span class="links">
+            <a href="index.html">Leaderboard</a>
+            <a href="submit.html">Submit a level</a>
+            <a href="records.html">Submit a record</a>
+        </span>
+        <span class="nav-account" id="navAccount"></span>
+    </nav>
+
+    <div class="form-shell">
+        <div id="authBox">
+            <div class="tabs" id="authTabs">
+                <button type="button" class="tab active" data-mode="signin">Sign in</button>
+                <button type="button" class="tab" data-mode="signup">Create an account</button>
+            </div>
+
+            <h1 class="form-title" id="authTitle">Sign in</h1>
+            <p class="form-intro" id="authIntro">
+                Submitting a level or a record needs an account, so every submission has a name
+                attached to it that is actually yours.
+            </p>
+
+            <form id="authForm" novalidate>
+                <div class="field hidden" id="f-name">
+                    <label for="in-name">Display name
+                        <span class="hint">What shows next to your records. You can change it later.</span>
+                    </label>
+                    <input id="in-name" type="text" autocomplete="nickname" maxlength="24">
+                    <div class="err"></div>
+                </div>
+
+                <div class="field" id="f-email">
+                    <label for="in-email">Email</label>
+                    <input id="in-email" type="email" autocomplete="email">
+                    <div class="err"></div>
+                </div>
+
+                <div class="field" id="f-password">
+                    <label for="in-password">Password
+                        <span class="hint" id="pwHint">At least 8 characters.</span>
+                    </label>
+                    <input id="in-password" type="password" autocomplete="current-password">
+                    <div class="err"></div>
+                </div>
+
+                <button class="btn-submit" id="authBtn" type="submit">Sign in</button>
+                <div class="form-note" id="authNote"></div>
+            </form>
+        </div>
+
+        <div class="form-done hidden" id="authDone"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="login.js" defer></script>
+</body>
+</html>

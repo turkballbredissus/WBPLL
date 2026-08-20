@@ -16,11 +16,14 @@
         </a>
         <span class="links">
             <a href="index.html">Leaderboard</a>
-            <a href="submit.html" class="active">Submit</a>
+            <a href="submit.html" class="active">Submit a level</a>
+            <a href="records.html">Submit a record</a>
         </span>
+        <span class="nav-account" id="navAccount"></span>
     </nav>
 
     <div class="form-shell">
+        <div class="gate hidden" id="signInGate"></div>
         <h1 class="form-title">Submit a level</h1>
         <p class="form-intro">
             Every submission is reviewed by hand before it appears on the list. The placement you
@@ -79,6 +82,9 @@
         <div class="form-done hidden" id="formDone"></div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
     <script src="submit.js" defer></script>
 </body>
 </html>
