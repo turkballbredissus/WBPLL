@@ -116,8 +116,9 @@
         const wrap = root.querySelector('.live-section');
         wrap.textContent = '';
         wrap.appendChild(el('div', 'section-head', 'Records on the list'));
-        wrap.appendChild(el('div', 'section-sub',
-            'Everything currently showing under a level. Remove one if it turns out to be wrong.'));
+        wrap.appendChild(el('div', 'section-sub', WB.atLeast('owner')
+            ? 'Everything currently showing under a level. Remove one if it turns out to be wrong.'
+            : 'Everything currently showing under a level. Only the owner can take one back off.'));
 
         if (!liveRecords.length) {
             wrap.appendChild(el('div', 'q-empty', 'No records accepted yet.'));
@@ -155,11 +156,18 @@
                         row.appendChild(el('span', ''));
                     }
 
-                    const del = el('button', 'btn-remove', '×');
-                    del.type = 'button';
-                    del.title = 'Take this record off the level';
-                    del.addEventListener('click', () => removeRecord(r));
-                    row.appendChild(del);
+                    // Removing is owner-only, enforced in the database. The
+                    // button is simply absent for everyone else rather than
+                    // being there to fail.
+                    if (WB.atLeast('owner')) {
+                        const del = el('button', 'btn-remove', '×');
+                        del.type = 'button';
+                        del.title = 'Take this record off the level';
+                        del.addEventListener('click', () => removeRecord(r));
+                        row.appendChild(del);
+                    } else {
+                        row.appendChild(el('span', ''));
+                    }
                     wrap.appendChild(row);
                 });
             });

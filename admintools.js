@@ -281,7 +281,9 @@
         wrap.appendChild(el('div', 'section-sub',
             'Drag a level by its handle to move it. The box is there for long jumps - ' +
             'type a rank and press Enter. Either way every other rank renumbers itself. ' +
-            'Removing a level takes its records with it.'));
+            (WB.atLeast('owner')
+                ? 'Removing a level takes its records with it.'
+                : 'Only the owner can remove a level.')));
 
         if (!levels.length) {
             wrap.appendChild(el('div', 'q-empty', 'Nothing on the list yet.'));
@@ -322,11 +324,17 @@
         });
         row.appendChild(jump);
 
-        const del = el('button', 'btn-remove', '×');
-        del.type = 'button';
-        del.title = 'Remove from the list';
-        del.addEventListener('click', () => remove(lvl));
-        row.appendChild(del);
+        // Owner only, enforced in the database. Admins place and reorder;
+        // taking a level off destroys its records, so that is the owner's.
+        if (WB.atLeast('owner')) {
+            const del = el('button', 'btn-remove', '×');
+            del.type = 'button';
+            del.title = 'Remove from the list';
+            del.addEventListener('click', () => remove(lvl));
+            row.appendChild(del);
+        } else {
+            row.appendChild(el('span', ''));
+        }
 
         return row;
     }
