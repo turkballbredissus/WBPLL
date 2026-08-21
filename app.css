@@ -443,6 +443,100 @@ form.locked .field { opacity: 0.5; }
 /* While a row is in flight, nothing else should highlight or take a click. */
 .drag-list.drag-active { user-select: none; }
 .drag-list.drag-active .drag-row:not(.dragging) { pointer-events: none; }
+/* Notifications */
+.notif-wrap { position: relative; display: inline-flex; align-items: center; }
+.notif-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 5px 8px;
+    color: var(--muted);
+    cursor: pointer;
+    transition: color 0.12s ease, border-color 0.12s ease;
+}
+.notif-btn:hover { color: var(--text); border-color: #4a4a50; }
+.notif-btn.has-unread { color: var(--accent); border-color: #6b2020; }
+.notif-dot {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 17px;
+    padding: 0 4px;
+    height: 17px;
+    border-radius: 9px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 800;
+    line-height: 17px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.notif-panel {
+    position: absolute;
+    top: calc(100% + 11px);
+    right: 0;
+    width: 330px;
+    max-width: calc(100vw - 32px);
+    max-height: 60vh;
+    overflow-y: auto;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.6);
+    z-index: 60;
+    /* Reading a reason widens the panel rather than squeezing the text. */
+    transition: width 0.18s ease;
+}
+.notif-panel.wide { width: 470px; }
+.notif-title {
+    padding: 12px 14px;
+    color: var(--text);
+    font-size: 0.82rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+}
+.notif-empty { padding: 14px; color: var(--muted); font-size: 0.85rem; line-height: 1.5; }
+
+.notif-row { padding: 11px 14px; border-bottom: 1px solid var(--border); }
+.notif-row:last-child { border-bottom: 0; }
+.notif-row.clickable { cursor: pointer; }
+.notif-row.clickable:hover { background: var(--bg3); }
+.notif-row.fresh { border-left: 3px solid var(--accent); padding-left: 11px; }
+.notif-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.notif-tag {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+}
+.notif-when { color: var(--muted); font-size: 0.72rem; margin-left: auto; }
+.notif-what { color: var(--text); font-size: 0.86rem; margin-top: 6px; overflow-wrap: anywhere; }
+.notif-more { color: var(--muted); font-size: 0.74rem; margin-top: 5px; }
+.notif-reason {
+    display: none;
+    margin-top: 9px;
+    padding: 9px 11px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-left: 2px solid var(--accent);
+    border-radius: 6px;
+    color: var(--text);
+    font-size: 0.84rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+.notif-row.open .notif-reason { display: block; }
+
 /* Players */
 .name-link { text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
