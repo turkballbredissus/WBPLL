@@ -1,208 +1,231 @@
 'use strict';
 (function () {
-    // The bell next to your name. There is no notifications table behind this -
-    // a notification IS one of your own submissions once somebody has reviewed
-    // it, which the queues already record. That means nothing extra to keep in
-    // sync, and a decision can never go missing.
+    // Two jobs, because this file loads on every page:
+    //   1. the bell next to your name, with the unread count, linking here
+    //   2. notification.html itself, one row per event down the page
     //
-    // What counts as unread is kept in this browser, not the database, so the
-    // badge is per-device. Signing in somewhere else shows the recent ones as
-    // new again. For a list this size that is a fair trade for no extra table.
+    // There is no notifications table. A notification IS a submission that
+    // something happened to, read straight out of the two queues, so nothing
+    // has to be kept in sync and a decision cannot go missing.
+    //
+    // Unread is remembered in this browser rather than the database, so the
+    // count is per device.
     const el = WB.el;
+    // The page is wherever the container is, rather than wherever the file
+    // happens to be named - one less thing to break on a rename.
+    const onPage = !!document.getElementById('notifRoot');
 
     let items = [];
-    let panel = null;
-    let openRow = null;
+    let seen = 0;
 
-    function seenKey(userId) { return 'wbpill_seen_' + userId; }
-
-    function lastSeen(userId) {
-        try { return Number(localStorage.getItem(seenKey(userId))) || 0; }
-        catch (err) { return 0; }   // private mode, or storage switched off
+    function seenKey(id) { return 'wbpill_seen_' + id; }
+    function readSeen(id) {
+        try { return Number(localStorage.getItem(seenKey(id))) || 0; }
+        catch (err) { return 0; }
     }
-    function markSeen(userId, when) {
-        try { localStorage.setItem(seenKey(userId), String(when)); }
-        catch (err) { /* not worth failing over */ }
+    function writeSeen(id, when) {
+        try { localStorage.setItem(seenKey(id), String(when)); }
+        catch (err) { /* private mode - the badge just will not stick */ }
     }
-
     function stamp(iso) {
         const t = Date.parse(iso || '');
         return isNaN(t) ? 0 : t;
     }
 
-    // His words: a record is denied, a level is rejected.
-    function label(it) {
-        if (it.kind === 'record') return it.status === 'approved' ? 'Record accepted' : 'Record denied';
-        return it.status === 'approved' ? 'Level accepted' : 'Level rejected';
-    }
+    // His wording: a record is denied, a level is rejected.
+    const LABEL = {
+        'record-approved': 'Record accepted',
+        'record-denied': 'Record denied',
+        'level-approved': 'Level accepted',
+        'level-denied': 'Level rejected',
+        'new-record': 'New record submission',
+        'new-level': 'New level submission'
+    };
 
-    function detail(it) {
-        if (it.kind === 'record') {
-            return it.percent + '% on ' + (it.subject || 'a level');
+    async function load(user) {
+        const jobs = [
+            WB.client.from('record_submissions')
+                .select('id, status, note, percent, reviewed_at, levels ( name )')
+                .eq('account_id', user.id).neq('status', 'pending')
+                .order('reviewed_at', { ascending: false }).limit(40),
+            WB.client.from('level_submissions')
+                .select('id, status, note, name, reviewed_at')
+                .eq('account_id', user.id).neq('status', 'pending')
+                .order('reviewed_at', { ascending: false }).limit(40)
+        ];
+
+        // Reviewers also get told when something lands in their queue.
+        if (WB.atLeast('moderator')) {
+            jobs.push(WB.client.from('record_submissions')
+                .select('id, player, percent, account_name, created_at, levels ( name )')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false }).limit(40));
         }
-        return it.subject || 'your level';
-    }
+        if (WB.atLeast('admin')) {
+            jobs.push(WB.client.from('level_submissions')
+                .select('id, name, publisher, account_name, created_at')
+                .eq('status', 'pending')
+                .order('created_at', { ascending: false }).limit(40));
+        }
 
-    async function load(userId) {
-        const recs = WB.client
-            .from('record_submissions')
-            .select('id, status, note, percent, reviewed_at, levels ( name )')
-            .eq('account_id', userId)
-            .neq('status', 'pending')
-            .order('reviewed_at', { ascending: false })
-            .limit(30);
-
-        const lvls = WB.client
-            .from('level_submissions')
-            .select('id, status, note, name, reviewed_at')
-            .eq('account_id', userId)
-            .neq('status', 'pending')
-            .order('reviewed_at', { ascending: false })
-            .limit(30);
-
-        const [a, b] = await Promise.all([recs, lvls]);
-
+        const res = await Promise.all(jobs);
         const out = [];
-        ((a && a.data) || []).forEach(r => out.push({
-            kind: 'record',
-            status: r.status,
+
+        ((res[0] && res[0].data) || []).forEach(r => out.push({
+            type: 'record-' + r.status,
+            subject: r.percent + '% on ' + (r.levels ? r.levels.name : 'a level'),
             note: r.note,
-            percent: r.percent,
-            subject: r.levels ? r.levels.name : '',
+            denied: r.status !== 'approved',
             at: stamp(r.reviewed_at)
         }));
-        ((b && b.data) || []).forEach(l => out.push({
-            kind: 'level',
-            status: l.status,
-            note: l.note,
+
+        ((res[1] && res[1].data) || []).forEach(l => out.push({
+            type: 'level-' + l.status,
             subject: l.name,
+            note: l.note,
+            denied: l.status !== 'approved',
             at: stamp(l.reviewed_at)
         }));
 
-        out.sort((x, y) => y.at - x.at);
+        ((res[2] && res[2].data) || []).forEach(r => out.push({
+            type: 'new-record',
+            subject: (r.player || 'someone') + ' · ' + r.percent + '% on ' +
+                (r.levels ? r.levels.name : 'a level'),
+            href: 'modtools.html',
+            at: stamp(r.created_at)
+        }));
+
+        ((res[3] && res[3].data) || []).forEach(l => out.push({
+            type: 'new-level',
+            subject: l.name + ' by ' + (l.publisher || 'unknown'),
+            href: 'admintools.html',
+            at: stamp(l.created_at)
+        }));
+
+        out.sort((a, b) => b.at - a.at);
         return out;
     }
 
-    function build(userId) {
+    // ---------------------------------------------------------- the bell
+
+    function buildBell(user) {
         const slot = document.getElementById('navAccount');
         if (!slot) return;
 
         const wrap = el('span', 'notif-wrap');
-
-        const btn = el('button', 'notif-btn');
-        btn.type = 'button';
-        btn.title = 'Notifications';
-        btn.setAttribute('aria-label', 'Notifications');
-        btn.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" ' +
+        const link = el('a', 'notif-btn');
+        link.href = 'notification.html';
+        link.title = 'Notifications';
+        link.setAttribute('aria-label', 'Notifications');
+        link.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" ' +
             'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
             '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>' +
             '<path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
-        wrap.appendChild(btn);
+        wrap.appendChild(link);
 
-        const unread = items.filter(it => it.at > lastSeen(userId)).length;
+        const unread = items.filter(it => it.at > seen).length;
         if (unread) {
-            btn.classList.add('has-unread');
+            link.classList.add('has-unread');
             wrap.appendChild(el('span', 'notif-dot', unread > 9 ? '9+' : String(unread)));
         }
 
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            togglePanel(wrap, userId);
-        });
-
-        // The sign-out button stays last, so the bell goes just before it.
         const out = slot.querySelector('.acct-out');
         if (out) slot.insertBefore(wrap, out);
         else slot.appendChild(wrap);
     }
 
-    function togglePanel(wrap, userId) {
-        if (panel) {
-            closePanel();
-            return;
-        }
-        panel = el('div', 'notif-panel');
+    // ---------------------------------------------------------- the page
 
-        const head = el('div', 'notif-title', items.length ? 'Notifications' : 'Nothing yet');
-        panel.appendChild(head);
+    function renderPage(user) {
+        const root = document.getElementById('notifRoot');
+        if (!root) return;
+        root.textContent = '';
+
+        const head = el('div', 'notif-bar');
+        head.appendChild(el('h1', 'notif-h1', 'Notifications'));
+
+        const unread = items.filter(it => it.at > seen).length;
+        if (unread) {
+            const btn = el('button', 'btn-readall', 'Read all');
+            btn.type = 'button';
+            btn.addEventListener('click', () => {
+                seen = items.length ? items[0].at : Date.now();
+                writeSeen(user.id, seen);
+                renderPage(user);
+                const dot = document.querySelector('.notif-dot');
+                if (dot) dot.remove();
+                const bell = document.querySelector('.notif-btn');
+                if (bell) bell.classList.remove('has-unread');
+            });
+            head.appendChild(btn);
+        }
+        root.appendChild(head);
 
         if (!items.length) {
-            panel.appendChild(el('div', 'notif-empty',
-                'When a level or record of yours is reviewed, it shows up here.'));
-        } else {
-            items.forEach(it => panel.appendChild(row(it, userId)));
+            root.appendChild(el('div', 'notif-none',
+                'Nothing yet. When a level or record of yours is reviewed, it turns up here.'));
+            return;
         }
 
-        panel.addEventListener('click', e => e.stopPropagation());
-        wrap.appendChild(panel);
-
-        // Opening it counts as reading it.
-        const newest = items.length ? items[0].at : Date.now();
-        markSeen(userId, newest);
-        const dot = wrap.querySelector('.notif-dot');
-        if (dot) dot.remove();
-        wrap.querySelector('.notif-btn').classList.remove('has-unread');
-
-        document.addEventListener('click', closePanel);
-        document.addEventListener('keydown', escClose);
+        const list = el('div', 'notif-list');
+        items.forEach(it => list.appendChild(pageRow(it)));
+        root.appendChild(list);
     }
 
-    function row(it, userId) {
-        const denied = it.status !== 'approved';
-        const r = el('div', 'notif-row' + (denied ? ' clickable' : ''));
-        if (it.at > lastSeen(userId)) r.classList.add('fresh');
+    function pageRow(it) {
+        const fresh = it.at > seen;
+        const r = el('div', 'nrow' + (fresh ? ' fresh' : '') + (it.denied ? ' clickable' : ''));
 
-        const top = el('div', 'notif-head');
-        top.appendChild(el('span', 'notif-tag tag-' + it.status, label(it)));
-        if (it.at) top.appendChild(el('span', 'notif-when', WB.fmtWhen(new Date(it.at).toISOString())));
-        r.appendChild(top);
+        const line = el('div', 'nrow-line');
+        line.appendChild(el('span', 'nrow-label lb-' + it.type, LABEL[it.type] + ':'));
+        line.appendChild(el('span', 'nrow-subject', it.subject || ''));
+        if (it.at) line.appendChild(el('span', 'nrow-when', WB.fmtWhen(new Date(it.at).toISOString())));
+        r.appendChild(line);
 
-        r.appendChild(el('div', 'notif-what', detail(it)));
+        // A queue notification is a shortcut to the thing that needs doing.
+        if (it.href) {
+            const go = el('a', 'nrow-go', 'Open the queue →');
+            go.href = it.href;
+            r.appendChild(go);
+        }
 
-        if (denied) {
-            r.appendChild(el('div', 'notif-more', 'Click to see why'));
-
-            const reason = el('div', 'notif-reason',
-                it.note ? it.note : 'No reason was given.');
-            r.appendChild(reason);
-
+        // The reason for a rejection lives inside the row and opens in place,
+        // so the streak never sends you somewhere else to read one line.
+        if (it.denied) {
+            r.appendChild(el('div', 'nrow-more', 'Click to see why'));
+            r.appendChild(el('div', 'nrow-reason', it.note || 'No reason was given.'));
             r.addEventListener('click', () => {
-                const opening = openRow !== r;
-                // One reason open at a time, so the panel only has to be wide
-                // for the thing you are actually reading.
-                if (openRow) openRow.classList.remove('open');
-                openRow = opening ? r : null;
-                if (opening) r.classList.add('open');
-                panel.classList.toggle('wide', opening);
-                const more = r.querySelector('.notif-more');
-                if (more) more.textContent = opening ? 'Click to hide' : 'Click to see why';
+                const open = r.classList.toggle('open');
+                r.querySelector('.nrow-more').textContent = open ? 'Click to hide' : 'Click to see why';
             });
         }
         return r;
     }
 
-    function closePanel() {
-        if (!panel) return;
-        panel.remove();
-        panel = null;
-        openRow = null;
-        document.removeEventListener('click', closePanel);
-        document.removeEventListener('keydown', escClose);
-    }
-
-    function escClose(e) {
-        if (e.key === 'Escape') closePanel();
-    }
+    // ------------------------------------------------------------- start
 
     WB.ready().then(async () => {
         const user = WB.user();
-        if (!user || !WB.client) return;
+        const root = document.getElementById('notifRoot');
+
+        if (!user || !WB.client) {
+            if (root) {
+                root.textContent = '';
+                root.appendChild(el('h1', 'notif-h1', 'Notifications'));
+                root.appendChild(el('div', 'notif-none', 'Sign in to see yours.'));
+            }
+            return;
+        }
+
+        seen = readSeen(user.id);
         try {
-            items = await load(user.id);
+            items = await load(user);
         } catch (err) {
             console.error('Could not load notifications:', err);
             items = [];
         }
-        build(user.id);
+
+        buildBell(user);
+        if (onPage) renderPage(user);
     });
 })();
