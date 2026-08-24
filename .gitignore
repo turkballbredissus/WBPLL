@@ -1,5 +1,7 @@
-# Has your email in the owner line, and the site does not need it to run
-supabase-setup.sql
+# Database scripts. The site never loads these - they are pasted into the
+# Supabase SQL editor by hand - so they have no business on a web host.
+# supabase-setup.sql also has your email in its owner line.
+*.sql
 
 # Setup and operating notes, only useful to you
 SETUP.md
