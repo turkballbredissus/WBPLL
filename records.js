@@ -93,10 +93,18 @@
         first.value = '';
         levelSelect.appendChild(first);
 
-        levels.forEach(lvl => {
-            const opt = el('option', '', '#' + lvl.position + '  ' + (lvl.name || 'untitled'));
-            opt.value = String(lvl.id);
-            levelSelect.appendChild(opt);
+        WB.LISTS.forEach(info => {
+            const mine = levels.filter(l => (l.list || 'impossible') === info.key);
+            if (!mine.length) return;
+
+            const group = el('optgroup');
+            group.label = info.long;
+            mine.forEach(lvl => {
+                const opt = el('option', '', '#' + lvl.position + '  ' + (lvl.name || 'untitled'));
+                opt.value = String(lvl.id);
+                group.appendChild(opt);
+            });
+            levelSelect.appendChild(group);
         });
     }
 
@@ -104,7 +112,8 @@
         if (!WB.client) return [];
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name')
+            .select('id, list, position, name')
+            .order('list', { ascending: true })
             .order('position', { ascending: true });
         if (error) {
             note.textContent = WB.errText(error);

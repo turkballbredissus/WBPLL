@@ -23,6 +23,30 @@ window.WB = (function () {
 
     const RANK = { anon: -1, user: 0, moderator: 1, admin: 2, owner: 3 };
 
+    // The two lists. `key` is what the database stores; everything else is
+    // wording, kept here so renaming a list is a one-line job.
+    const LISTS = [
+        { key: 'impossible', short: 'Impossible', long: 'Physically impossible' },
+        { key: 'possible', short: 'Possible', long: 'Physically possible' }
+    ];
+    function listInfo(key) {
+        return LISTS.find(l => l.key === key) || LISTS[0];
+    }
+    // Which list the visitor was last looking at, so moving between pages does
+    // not keep dumping them back on the impossible one.
+    function currentList() {
+        const fromUrl = new URLSearchParams(location.search).get('list');
+        if (LISTS.some(l => l.key === fromUrl)) return fromUrl;
+        try {
+            const saved = localStorage.getItem('wbpll_list');
+            if (LISTS.some(l => l.key === saved)) return saved;
+        } catch (err) { /* storage off - the default is fine */ }
+        return 'impossible';
+    }
+    function rememberList(key) {
+        try { localStorage.setItem('wbpll_list', key); } catch (err) { /* no matter */ }
+    }
+
     let session = null;
     let profile = null;
     let readyPromise = null;
@@ -225,6 +249,10 @@ window.WB = (function () {
         user: function () { return session ? session.user : null; },
         profile: function () { return profile; },
         el: el,
+        LISTS: LISTS,
+        listInfo: listInfo,
+        currentList: currentList,
+        rememberList: rememberList,
         people: people,
         nameEl: nameEl,
         roleChip: roleChip,

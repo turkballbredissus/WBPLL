@@ -6,7 +6,8 @@
     const el = WB.el;
 
     let queue = [];
-    let levels = [];
+    let levels = [];        // every level, both lists
+    let adminList = WB.currentList();   // the one being managed below
     let history = [];
     let people = [];        // the Accounts panel roster, owner only
     let peopleById = {};    // account id -> {display_name, role}, for tinting names
@@ -55,12 +56,13 @@
         const jobs = [
             WB.client
                 .from('level_submissions')
-                .select('id, name, publisher, level_id, showcase, placement, account_id, account_name, created_at')
+                .select('id, name, publisher, level_id, showcase, placement, list, account_id, account_name, created_at')
                 .eq('status', 'pending')
                 .order('created_at', { ascending: true }),
             WB.client
                 .from('levels')
-                .select('id, position, name, publisher, points')
+                .select('id, list, position, name, publisher, points')
+                .order('list', { ascending: true })
                 .order('position', { ascending: true }),
             WB.client
                 .from('level_submissions')
@@ -143,16 +145,31 @@
 
         // What the admin fills in, as opposed to what the submitter sent.
         const grid = el('div', 'q-grid');
-        const posIn = numField(grid, 'Place at', clampPos(sub.placement || levels.length + 1), 1, levels.length + 1);
+        // Their choice of list is a request, not a decision - an easy level
+        // filed under impossible gets moved here rather than sent back.
+        const asked = (sub.list === 'possible' || sub.list === 'impossible') ? sub.list : 'impossible';
+        const listIn = selectField(grid, 'List', WB.LISTS.map(l => ({ value: l.key, text: l.long })), asked);
+
+        const posIn = numField(grid, 'Place at', clampPos(sub.placement || 999, asked), 1, 999);
         const ptsIn = numField(grid, 'Points', 250, 0, 999999);
-        const verIn = textField(grid, 'Verifier', '...its impossible.');
+        // "...its impossible." is the joke for the impossible list; a possible
+        // level has a real verifier, so that field starts empty for you to fill.
+        const verIn = textField(grid, 'Verifier', asked === 'possible' ? '' : '...its impossible.');
         const gdIn = textField(grid, 'Made in', '2.2');
         main.appendChild(grid);
 
         const preview = el('div', 'q-preview');
         main.appendChild(preview);
-        const updatePreview = () => { preview.textContent = previewText(sub, Number(posIn.value)); };
+        const updatePreview = () => {
+            preview.textContent = previewText(sub, Number(posIn.value), listIn.value);
+        };
         posIn.addEventListener('input', updatePreview);
+        listIn.addEventListener('change', () => {
+            // Rank 4 of one list is not rank 4 of the other, so re-clamp it.
+            posIn.value = clampPos(Number(posIn.value), listIn.value);
+            verIn.value = listIn.value === 'possible' ? '' : '...its impossible.';
+            updatePreview();
+        });
         updatePreview();
 
         const noteIn = el('input', 'q-note');
@@ -166,7 +183,8 @@
         const yes = el('button', 'btn-accept', 'Approve and place');
         yes.type = 'button';
         yes.addEventListener('click', () => approve(sub, {
-            pos: clampPos(Number(posIn.value)),
+            list: listIn.value,
+            pos: clampPos(Number(posIn.value), listIn.value),
             points: Number(ptsIn.value),
             verifier: verIn.value,
             version: gdIn.value
@@ -182,20 +200,31 @@
         return c;
     }
 
-    function clampPos(n) {
-        const max = levels.length + 1;
+    // A rank only means something inside one list, so every bit of position
+    // maths below asks which list first.
+    function inList(key) {
+        return levels.filter(l => (l.list || 'impossible') === key);
+    }
+
+    function clampPos(n, key) {
+        const max = inList(key).length + 1;
         if (!Number.isFinite(n) || n < 1) return 1;
         return Math.min(Math.round(n), max);
     }
 
-    function previewText(sub, raw) {
-        const pos = clampPos(raw);
-        if (pos > levels.length) {
-            return 'Goes on the end, at #' + pos + '.';
+    function previewText(sub, raw, key) {
+        const rows = inList(key);
+        const pos = clampPos(raw, key);
+        const where = ' on the ' + WB.listInfo(key).long.toLowerCase() + ' list';
+
+        if (pos > rows.length) {
+            return rows.length
+                ? 'Goes on the end' + where + ', at #' + pos + '.'
+                : 'Starts' + where + ' as #1.';
         }
-        const pushed = levels[pos - 1];
-        return 'Goes in at #' + pos + ', pushing ' + pushed.name + ' down to #' + (pos + 1) +
-            (levels.length > pos ? ' and everything below it too.' : '.');
+        const pushed = rows[pos - 1];
+        return 'Goes in at #' + pos + where + ', pushing ' + pushed.name +
+            ' down to #' + (pos + 1) + (rows.length > pos ? ' and everything below it too.' : '.');
     }
 
     function numField(grid, label, value, min, max) {
@@ -211,6 +240,21 @@
         return i;
     }
 
+    function selectField(grid, label, options, value) {
+        const f = el('label', 'q-field');
+        f.appendChild(el('span', '', label));
+        const sel = el('select');
+        options.forEach(o => {
+            const opt = el('option', '', o.text);
+            opt.value = o.value;
+            if (o.value === value) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        f.appendChild(sel);
+        grid.appendChild(f);
+        return sel;
+    }
+
     function textField(grid, label, value) {
         const f = el('label', 'q-field');
         f.appendChild(el('span', '', label));
@@ -224,7 +268,8 @@
 
     async function approve(sub, opts, cardEl) {
         if (busy) return;
-        if (!confirm('Put "' + sub.name + '" on the list at #' + opts.pos + '?')) return;
+        if (!confirm('Put "' + sub.name + '" on the ' +
+            WB.listInfo(opts.list).long.toLowerCase() + ' list at #' + opts.pos + '?')) return;
 
         busy = true;
         setCardButtons(cardEl, true);
@@ -234,7 +279,8 @@
             p_points: Number.isFinite(opts.points) ? opts.points : 250,
             p_verifier: opts.verifier,
             p_version: opts.version,
-            p_added: null
+            p_added: null,
+            p_list: opts.list
         });
         busy = false;
         if (error) return cardError(cardEl, error);
@@ -277,7 +323,26 @@
     function renderList() {
         const wrap = root.querySelector('.list-section');
         wrap.textContent = '';
-        wrap.appendChild(el('div', 'section-head', 'The list'));
+        wrap.appendChild(el('div', 'section-head', 'The lists'));
+
+        // One list is managed at a time. Dragging only ever reorders within
+        // the list on screen, which is also all the database will allow.
+        const tabs = el('div', 'list-tabs');
+        WB.LISTS.forEach(info => {
+            const n = inList(info.key).length;
+            const t = el('button', 'ltab' + (info.key === adminList ? ' active' : ''),
+                info.long + ' (' + n + ')');
+            t.type = 'button';
+            t.addEventListener('click', () => {
+                if (info.key === adminList) return;
+                adminList = info.key;
+                WB.rememberList(adminList);
+                renderList();
+            });
+            tabs.appendChild(t);
+        });
+        wrap.appendChild(tabs);
+
         wrap.appendChild(el('div', 'section-sub',
             'Drag a level by its handle to move it. The box is there for long jumps - ' +
             'type a rank and press Enter. Either way every other rank renumbers itself. ' +
@@ -285,20 +350,22 @@
                 ? 'Removing a level takes its records with it.'
                 : 'Only the owner can remove a level.')));
 
-        if (!levels.length) {
-            wrap.appendChild(el('div', 'q-empty', 'Nothing on the list yet.'));
+        const rows = inList(adminList);
+        if (!rows.length) {
+            wrap.appendChild(el('div', 'q-empty',
+                'Nothing on the ' + WB.listInfo(adminList).long.toLowerCase() + ' list yet.'));
             return;
         }
 
         // Rows live in their own container so the drag code can treat child
         // index and rank as the same thing.
         const listEl = el('div', 'drag-list');
-        levels.forEach(lvl => listEl.appendChild(levelRow(lvl)));
+        rows.forEach(lvl => listEl.appendChild(levelRow(lvl, rows.length)));
         wrap.appendChild(listEl);
         enableDrag(listEl);
     }
 
-    function levelRow(lvl) {
+    function levelRow(lvl, total) {
         const row = el('div', 'list-row drag-row');
         row.dataset.id = lvl.id;
 
@@ -316,7 +383,7 @@
         const jump = el('input', 'pos-box');
         jump.type = 'number';
         jump.min = 1;
-        jump.max = levels.length;
+        jump.max = total;
         jump.value = lvl.position;
         jump.title = 'Jump to this rank';
         jump.addEventListener('keydown', e => {
@@ -390,7 +457,8 @@
         function end() {
             if (!row) return;
             const moved = to !== from;
-            const lvl = levels[from];
+            const rows2 = inList(adminList);
+            const lvl = rows2[from];
 
             rows.forEach(r => { r.style.transform = ''; });
             row.classList.remove('dragging');
@@ -398,11 +466,15 @@
             row = null;
 
             if (moved && lvl) {
-                // Renumber on screen straight away, then let the refresh that
-                // follows the save confirm it.
-                const copy = levels.slice();
+                // Renumber this list on screen straight away, then let the
+                // refresh that follows the save confirm it. The other list is
+                // left exactly as it was.
+                const copy = rows2.slice();
                 copy.splice(to, 0, copy.splice(from, 1)[0]);
-                levels = copy.map((l, i) => Object.assign({}, l, { position: i + 1 }));
+                const renumbered = copy.map((l, i) => Object.assign({}, l, { position: i + 1 }));
+                levels = levels
+                    .filter(l => (l.list || 'impossible') !== adminList)
+                    .concat(renumbered);
                 renderList();
                 move(lvl, to + 1);
             }
@@ -423,7 +495,9 @@
 
     async function remove(lvl) {
         if (busy) return;
-        if (!confirm('Remove "' + lvl.name + '" from the list? Its records go too.')) return;
+        if (!confirm('Remove "' + lvl.name + '" from the ' +
+            WB.listInfo(lvl.list || 'impossible').long.toLowerCase() +
+            ' list? Its records go too.')) return;
         busy = true;
         const { error } = await WB.client.rpc('delete_level', { p_level: lvl.id });
         busy = false;

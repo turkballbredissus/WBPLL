@@ -17,6 +17,7 @@
     };
     let levels = [];
     let people = {};   // account id -> {display_name, role}, for tinting names
+    let list = WB.currentList();
 
     function formatPoints(p) {
         const n = Number(p);
@@ -62,6 +63,7 @@
         const { data, error } = await WB.client
             .from('levels')
             .select('id, position, name, publisher, level_id, points, verifier, version, added, image, records ( player, percent, proof, account_id )')
+            .eq('list', list)
             .order('position', { ascending: true });
 
         if (error) {
@@ -202,6 +204,70 @@
 
     // With nothing to show, the hero is an empty shell full of dashes, which
     // reads as broken rather than as empty. Take it away and leave the reason.
+    // Two tabs above the list. Switching re-queries rather than filtering in
+    // the page, so a long list never has to be downloaded twice over.
+    function renderSwitch() {
+        const wrap = document.getElementById('listSwitch');
+        if (!wrap) return;
+        wrap.textContent = '';
+
+        WB.LISTS.forEach(l => {
+            const tab = document.createElement('button');
+            tab.type = 'button';
+            tab.className = 'lswitch' + (l.key === list ? ' active' : '');
+            tab.dataset.list = l.key;
+
+            const big = document.createElement('span');
+            big.className = 'lswitch-name';
+            big.textContent = l.short;
+            const small = document.createElement('span');
+            small.className = 'lswitch-sub';
+            small.textContent = l.long;
+            tab.append(big, small);
+
+            tab.addEventListener('click', () => {
+                if (l.key === list) return;
+                list = l.key;
+                WB.rememberList(list);
+                // Keep the address bar honest, so a tab can be linked to.
+                // Only the query is replaced, so the file name survives, and
+                // a browser that refuses (file:// does) must not take the
+                // click down with it.
+                try { history.replaceState(null, '', '?list=' + list); }
+                catch (err) { /* the switch still works, the URL just will not say so */ }
+                renderSwitch();
+                refresh();
+            });
+            wrap.appendChild(tab);
+        });
+    }
+
+    async function refresh() {
+        levelListEl.textContent = '';
+        const loading = document.createElement('div');
+        loading.className = 'li-pub';
+        loading.style.padding = '14px';
+        loading.textContent = 'Loading…';
+        levelListEl.appendChild(loading);
+
+        const article = document.querySelector('.hero');
+        if (article) article.classList.remove('hidden');
+
+        const result = await loadLevels();
+        if (typeof result === 'string') {
+            showMessage(result);
+            return;
+        }
+        levels = result;
+        if (levels.length) {
+            renderList();
+            selectLevel(0);
+        } else {
+            showMessage('Nothing on the ' + WB.listInfo(list).long.toLowerCase() +
+                ' list yet. Submit something and it could be first.');
+        }
+    }
+
     function showMessage(text) {
         levelListEl.textContent = '';
         const msg = document.createElement('div');
@@ -214,22 +280,13 @@
         if (article) article.classList.add('hidden');
     }
 
-    // init - wait for the session so the nav is settled, then load the list
-    // and everyone's rank together, since record names are tinted by it.
+    // init - wait for the session so the nav is settled, then load the roster
+    // once (record names are tinted by rank) and the chosen list.
     WB.ready()
-        .then(() => Promise.all([loadLevels(), WB.people()]))
-        .then(([result, roster]) => {
+        .then(() => WB.people())
+        .then(roster => {
             people = roster || {};
-            if (typeof result === 'string') {
-                showMessage(result);
-                return;
-            }
-            levels = result;
-            if (levels.length) {
-                renderList();
-                selectLevel(0);
-            } else {
-                showMessage('No levels on the list yet.');
-            }
+            renderSwitch();
+            return refresh();
         });
 })();

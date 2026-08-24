@@ -42,6 +42,50 @@ a { color: inherit; }
 .nav .links a:hover { color: var(--text); }
 .nav .links a.active { color: var(--accent); }
 
+/* Which of the two lists you are looking at */
+.list-switch {
+    display: flex;
+    gap: 10px;
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 20px 26px 0;
+}
+.lswitch {
+    flex: 0 1 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 18px;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+.lswitch:hover { border-color: #4a4a50; background: var(--bg3); }
+.lswitch.active { border-color: var(--accent); background: var(--bg3); }
+.lswitch-name { color: var(--muted); font-size: 1rem; font-weight: 800; }
+.lswitch.active .lswitch-name { color: var(--accent); }
+.lswitch-sub { color: var(--muted); font-size: 0.76rem; }
+
+/* The same choice, inside Admin Tools */
+.list-tabs { display: flex; gap: 8px; margin: 12px 0 6px; flex-wrap: wrap; }
+.ltab {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 7px 14px;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 0.84rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.ltab:hover { color: var(--text); border-color: #4a4a50; }
+.ltab.active { color: var(--accent); border-color: var(--accent); }
+
 .shell {
     display: grid;
     grid-template-columns: 440px minmax(0, 1fr);
@@ -644,6 +688,9 @@ form.locked .field { opacity: 0.5; }
     .level-list { max-height: none; }
 }
 @media (max-width: 640px) {
+    .list-switch { padding: 14px 16px 0; gap: 8px; }
+    .lswitch { flex: 1 1 0; padding: 10px 12px; }
+    .lswitch-sub { display: none; }
     .nav { gap: 14px; flex-wrap: wrap; }
     .nav .links { gap: 14px; }
     .nav-account { margin-left: 0; }

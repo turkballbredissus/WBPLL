@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit a level | WBPILL</title>
-    <meta name="description" content="Submit a level to the WBPILL list">
+    <title>Submit a level | WBPLL</title>
+    <meta name="description" content="Submit a level to the WBPLL list">
     <link rel="icon" href="favicon.png" type="image/png">
     <link rel="stylesheet" href="app.css">
 </head>
@@ -12,7 +12,7 @@
     <nav class="nav">
         <a class="brandlink" href="index.html">
             <img class="logo" src="favicon.png" alt="">
-            <span class="brand">WBPILL</span>
+            <span class="brand">WBPLL</span>
         </a>
         <span class="links">
             <a href="index.html">Leaderboard</a>
@@ -40,6 +40,18 @@
             <div class="field" id="f-publisher">
                 <label for="in-publisher">Level publisher</label>
                 <input type="text" id="in-publisher" name="publisher" maxlength="60" autocomplete="off">
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-list">
+                <label for="in-list">
+                    Which list
+                    <span class="hint">Pick the wrong one and it gets moved, not thrown out.</span>
+                </label>
+                <select id="in-list" name="list">
+                    <option value="impossible">Physically impossible</option>
+                    <option value="possible">Physically possible</option>
+                </select>
                 <span class="err"></span>
             </div>
 

@@ -25,6 +25,10 @@
             if (v.trim().length < 2) return 'That name looks too short.';
             return '';
         },
+        list(v) {
+            if (!v) return 'Pick which list this belongs on.';
+            return '';
+        },
         placement(v) {
             if (!v.trim()) return 'Enter a placement number.';
             if (!/^\d+$/.test(v.trim())) return 'Use a whole number, like 3.';
@@ -47,6 +51,7 @@
     const fieldEls = {
         name: document.getElementById('f-name'),
         publisher: document.getElementById('f-publisher'),
+        list: document.getElementById('f-list'),
         placement: document.getElementById('f-placement'),
         levelId: document.getElementById('f-id'),
         showcase: document.getElementById('f-showcase')
@@ -54,6 +59,7 @@
     const inputEls = {
         name: document.getElementById('in-name'),
         publisher: document.getElementById('in-publisher'),
+        list: document.getElementById('in-list'),
         placement: document.getElementById('in-placement'),
         levelId: document.getElementById('in-id'),
         showcase: document.getElementById('in-showcase')
@@ -88,6 +94,7 @@
     // The form is visible either way; without an account the button is off and
     // the reason sits above it, rather than the page looking broken.
     WB.ready().then(() => {
+        inputEls.list.value = WB.currentList();
         if (!WB.configured) {
             lock('Not connected yet',
                 'The site is not wired to its backend, so submissions cannot be sent.');
@@ -146,6 +153,7 @@
             publisher: inputEls.publisher.value.trim(),
             level_id: inputEls.levelId.value.trim(),
             showcase: inputEls.showcase.value.trim(),
+            list: inputEls.list.value,
             placement: Number(inputEls.placement.value),
             account_id: user.id,
             account_name: WB.displayName()
