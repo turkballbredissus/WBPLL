@@ -457,7 +457,24 @@ form.locked .field { opacity: 0.5; }
     padding: 10px 12px;
     margin-bottom: 8px;
 }
-.user-row { grid-template-columns: 96px minmax(0, 1fr) 140px; }
+.user-row { grid-template-columns: 96px minmax(0, 1fr) auto; }
+.user-who { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; min-width: 0; }
+.user-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.user-acts .btn-deny, .user-acts .btn-ghost { padding: 6px 13px; font-size: 0.8rem; }
+.user-acts .role-pick { width: auto; min-width: 110px; }
+/* A disabled account is dimmed rather than hidden, so it is obvious at a
+   glance who is switched off without hunting for a label. */
+.row-off { opacity: 0.55; }
+.off-chip {
+    font-size: 0.66rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 3px 7px;
+    border-radius: 5px;
+    border: 1px solid #6b2020;
+    color: var(--accent);
+}
 
 /* Drag to reorder the list */
 .drag-row {

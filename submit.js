@@ -100,6 +100,12 @@
                 'The site is not wired to its backend, so submissions cannot be sent.');
             return;
         }
+        if (WB.isDisabled()) {
+            lock('Your account is disabled',
+                'It cannot submit anything at the moment. If you think that is a mistake, ' +
+                'ask a moderator.');
+            return;
+        }
         if (!WB.user()) {
             lock('You need an account',
                 'Submissions carry the name of whoever sent them, so the review queue knows who to thank.',

@@ -130,6 +130,12 @@
         }
         fillLevels(await loadLevels());
 
+        if (WB.isDisabled()) {
+            lock('Your account is disabled',
+                'It cannot submit anything at the moment. If you think that is a mistake, ' +
+                'ask a moderator.');
+            return;
+        }
         if (!WB.user()) {
             lock('You need an account',
                 'Records are checked against the account that sent them, so nobody can file one under your name.',

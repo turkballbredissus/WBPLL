@@ -9,7 +9,7 @@
     let levels = [];        // every level, both lists
     let adminList = WB.currentList();   // the one being managed below
     let history = [];
-    let people = [];        // the Accounts panel roster, owner only
+    let people = [];        // the Accounts panel roster
     let peopleById = {};    // account id -> {display_name, role}, for tinting names
     let busy = false;
 
@@ -25,7 +25,8 @@
         root.appendChild(el('div', 'queue', ''));
         root.appendChild(el('div', 'section list-section', ''));
         root.appendChild(el('div', 'hist', ''));
-        if (WB.atLeast('owner')) root.appendChild(el('div', 'section people-section', ''));
+        // Admins see the roster too now, because disabling is theirs to do.
+        root.appendChild(el('div', 'section people-section', ''));
         await refresh();
     }
 
@@ -71,9 +72,8 @@
                 .order('reviewed_at', { ascending: false })
                 .limit(20)
         ];
-        if (WB.atLeast('owner')) {
-            jobs.push(WB.client.from('profiles').select('id, display_name, role, created_at').order('created_at'));
-        }
+        jobs.push(WB.client.from('profiles')
+            .select('id, display_name, role, disabled, created_at').order('created_at'));
 
         const res = await Promise.all(jobs);
         peopleById = await WB.people();
@@ -104,7 +104,7 @@
         }
         renderList();
         renderHistory();
-        if (WB.atLeast('owner')) renderPeople();
+        renderPeople();
     }
 
     // ---------------------------------------------------------------- queue
@@ -510,37 +510,114 @@
     function renderPeople() {
         const wrap = root.querySelector('.people-section');
         wrap.textContent = '';
+        const owner = WB.atLeast('owner');
         wrap.appendChild(el('div', 'section-head', 'Accounts'));
-        wrap.appendChild(el('div', 'section-sub',
-            'Moderators review records. Admins also review levels and hold the list order. Owner is set from the SQL editor only.'));
+        wrap.appendChild(el('div', 'section-sub', owner
+            ? 'Disabling blocks an account from submitting anything and can be undone. Deleting cannot. Owner is set from the SQL editor only.'
+            : 'Disabling blocks an account from submitting anything, and can be undone. Only the owner can change roles or delete an account.'));
 
         if (!people.length) {
             wrap.appendChild(el('div', 'q-empty', 'No accounts yet.'));
             return;
         }
 
+        const me = WB.user();
         people.forEach(p => {
-            const row = el('div', 'list-row user-row');
+            const row = el('div', 'list-row user-row' + (p.disabled ? ' row-off' : ''));
             row.appendChild(WB.roleChip(p.role));
-            row.appendChild(WB.profileLink(p.display_name, p.role, p.id));
 
-            const me = WB.user();
+            const who = el('div', 'user-who');
+            who.appendChild(WB.profileLink(p.display_name, p.role, p.id));
+            if (p.disabled) who.appendChild(el('span', 'off-chip', 'disabled'));
+            row.appendChild(who);
+
+            const acts = el('div', 'user-acts');
+            const isMe = !!(me && p.id === me.id);
+
             if (p.role === 'owner') {
-                row.appendChild(el('span', 'li-pub',
-                    me && p.id === me.id ? 'that is you' : 'owner, not editable here'));
+                acts.appendChild(el('span', 'li-pub', isMe ? 'that is you' : 'owner'));
             } else {
-                const sel = el('select', 'role-pick');
-                ['user', 'moderator', 'admin'].forEach(r => {
-                    const o = el('option', '', r);
-                    o.value = r;
-                    if (r === p.role) o.selected = true;
-                    sel.appendChild(o);
-                });
-                sel.addEventListener('change', () => setRole(p, sel.value, sel));
-                row.appendChild(sel);
+                // Roles stay owner-only. Disabling is an admin call, because it
+                // is reversible and undoing a mistake costs nothing.
+                if (owner) {
+                    const sel = el('select', 'role-pick');
+                    ['user', 'moderator', 'admin'].forEach(r => {
+                        const o = el('option', '', r);
+                        o.value = r;
+                        if (r === p.role) o.selected = true;
+                        sel.appendChild(o);
+                    });
+                    sel.addEventListener('change', () => setRole(p, sel.value, sel));
+                    acts.appendChild(sel);
+                }
+
+                const off = el('button', p.disabled ? 'btn-ghost' : 'btn-deny',
+                    p.disabled ? 'Enable' : 'Disable');
+                off.type = 'button';
+                off.addEventListener('click', () => setDisabled(p, !p.disabled));
+                acts.appendChild(off);
+
+                if (owner) {
+                    const del = el('button', 'btn-remove', '×');
+                    del.type = 'button';
+                    del.title = 'Delete this account';
+                    del.addEventListener('click', () => deleteAccount(p));
+                    acts.appendChild(del);
+                }
             }
+            row.appendChild(acts);
             wrap.appendChild(row);
         });
+    }
+
+    async function setDisabled(person, off) {
+        if (busy) return;
+        const q = off
+            ? 'Disable ' + person.display_name + '?\n\nThey will not be able to submit anything until you turn it back on.'
+            : 'Let ' + person.display_name + ' submit again?';
+        if (!confirm(q)) return;
+
+        busy = true;
+        const { error } = await WB.client.rpc('set_account_disabled', {
+            p_user: person.id,
+            p_disabled: off
+        });
+        busy = false;
+        if (error) {
+            alert(WB.errText(error));
+            return;
+        }
+        person.disabled = off;
+        renderPeople();
+    }
+
+    // Two prompts on purpose: the first because this cannot be undone from the
+    // site, the second because what happens to their records is a real choice.
+    async function deleteAccount(person) {
+        if (busy) return;
+        if (!confirm('Delete ' + person.display_name + '?\n\nThis cannot be undone here. ' +
+            'Their profile and anything still waiting for review are removed, and they ' +
+            'cannot make a new account.')) return;
+
+        const wipe = confirm('Also remove their records from the lists?\n\n' +
+            'OK = remove their records too (for spam).\n' +
+            'Cancel = leave their records where they are (for someone just leaving).');
+
+        busy = true;
+        const { error } = await WB.client.rpc('delete_account', {
+            p_user: person.id,
+            p_wipe_content: wipe
+        });
+        busy = false;
+        if (error) {
+            alert(WB.errText(error));
+            return;
+        }
+        people = people.filter(x => x.id !== person.id);
+        renderPeople();
+        alert(person.display_name + ' is gone.\n\nTheir login still exists in Supabase, but ' +
+            'they are blocked from coming back, so clearing it is optional — ' +
+            'Authentication then Users, if you want it fully removed.');
     }
 
     async function setRole(person, role, sel) {

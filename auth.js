@@ -88,6 +88,11 @@ window.WB = (function () {
     function atLeast(name) {
         return RANK[role()] >= RANK[name];
     }
+    // A disabled account can still sign in and read; it just cannot submit.
+    function isDisabled() {
+        return !!(profile && profile.disabled);
+    }
+
     function displayName() {
         if (profile && profile.display_name) return profile.display_name;
         if (session && session.user && session.user.email) return session.user.email.split('@')[0];
@@ -244,6 +249,7 @@ window.WB = (function () {
         guard: guard,
         role: role,
         atLeast: atLeast,
+        isDisabled: isDisabled,
         displayName: displayName,
         signOut: signOut,
         user: function () { return session ? session.user : null; },

@@ -32,7 +32,7 @@
 
     async function showRoster() {
         const [people, records] = await Promise.all([
-            WB.client.from('profiles').select('id, display_name, role, created_at'),
+            WB.client.from('profiles').select('id, display_name, role, disabled, created_at'),
             WB.client.from('records').select('account_id')
         ]);
 
@@ -47,7 +47,9 @@
             if (r.account_id) counts[r.account_id] = (counts[r.account_id] || 0) + 1;
         });
 
-        const list = (people.data || []).slice().sort((a, b) => {
+        // Disabled accounts drop off the public roster. Staff still see them in
+        // Admin Tools; there is no reason to label someone publicly.
+        const list = (people.data || []).filter(p => !p.disabled).slice().sort((a, b) => {
             const d = ORDER[a.role] - ORDER[b.role];
             return d !== 0 ? d : a.display_name.localeCompare(b.display_name);
         });
