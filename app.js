@@ -50,6 +50,7 @@
                 version: r.version,
                 added: r.added,
                 image: r.image,
+                banner: r.banner,
                 records: Array.isArray(r.records) ? r.records : []
             };
         });
@@ -62,7 +63,7 @@
         }
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, records ( player, percent, proof, account_id )')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, records ( player, percent, proof, account_id )')
             .eq('list', list)
             .order('position', { ascending: true });
 
@@ -105,9 +106,84 @@
 
             content.append(name, pub, pts);
             item.append(thumb, rank, content);
+
+            const banner = bannerFor(lvl, item);
+            if (banner) {
+                item.classList.add('has-banner');
+                item.insertBefore(banner, item.firstChild);
+            }
+
             item.addEventListener('click', () => selectLevel(i));
             levelListEl.appendChild(item);
         });
+        watchBanners();
+    }
+
+    // A banner is a short looping clip behind the row. Only an https link to a
+    // real video file is used; anything else is ignored rather than trusted.
+    const VIDEO_URL = /^https:\/\/[^\s]+\.(mp4|webm)(\?[^\s]*)?$/i;
+
+    function bannerFor(lvl, item) {
+        if (!lvl.banner || !VIDEO_URL.test(lvl.banner)) return null;
+        // Someone who has asked their system not to animate things should not
+        // be handed a screen of looping video.
+        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            return null;
+        }
+
+        // The clip and its scrim live in one wrapper so a dead link can take
+        // both away in a single step. Removing them separately once left a
+        // full-page dark overlay behind, because an absolutely positioned
+        // scrim with no positioned parent stretches to the whole document.
+        const wrap = document.createElement('div');
+        wrap.className = 'banner-wrap';
+
+        const v = document.createElement('video');
+        v.className = 'banner-vid';
+        v.src = lvl.banner;
+        v.muted = true;
+        v.loop = true;
+        v.playsInline = true;
+        v.autoplay = false;    // started by the observer once it is on screen
+        v.preload = 'none';    // and not downloaded before that
+        v.setAttribute('aria-hidden', 'true');
+        v.addEventListener('error', () => {
+            // A dead or moved link should leave an ordinary row behind.
+            item.classList.remove('has-banner');
+            wrap.remove();
+        });
+
+        // Heavier over the text, lighter towards the right, so the clip still
+        // shows without the name fighting it.
+        const scrim = document.createElement('div');
+        scrim.className = 'banner-scrim';
+
+        wrap.append(v, scrim);
+        return wrap;
+    }
+
+    // Nothing plays until it is visible, and it stops on the way out. Eleven
+    // videos decoding at once would make the page crawl, and downloading clips
+    // for rows nobody scrolled to just spends the viewer's data.
+    let bannerObserver = null;
+    function watchBanners() {
+        if (bannerObserver) bannerObserver.disconnect();
+        if (!('IntersectionObserver' in window)) return;
+
+        bannerObserver = new IntersectionObserver(entries => {
+            entries.forEach(e => {
+                const v = e.target;
+                if (e.isIntersecting) {
+                    if (v.preload === 'none') v.preload = 'auto';
+                    const p = v.play();
+                    if (p && p.catch) p.catch(() => { /* autoplay refused; leave it still */ });
+                } else {
+                    v.pause();
+                }
+            });
+        }, { rootMargin: '200px' });
+
+        levelListEl.querySelectorAll('.banner-wrap .banner-vid').forEach(v => bannerObserver.observe(v));
     }
 
     function setMedia(lvl) {

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submit a banner | WBPLL</title>
+    <meta name="description" content="Submit a level banner to the WBPLL list">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="index.html">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPLL</span>
+        </a>
+        <span class="links">
+            <a href="index.html">Leaderboard</a>
+            <a href="submit.html">Submit a level</a>
+            <a href="records.html">Submit a record</a>
+            <a href="banners.html" class="active">Submit a banner</a>
+        </span>
+        <span class="nav-account" id="navAccount"></span>
+    </nav>
+
+    <div class="form-shell">
+        <div class="gate hidden" id="signInGate"></div>
+        <h1 class="form-title">Submit a banner</h1>
+        <p class="form-intro">
+            A banner is a short looping clip that sits behind a level's row on the list,
+            instead of the flat grey card. Two seconds at most, and it has to loop cleanly —
+            a visible jump at the seam is the main reason one gets turned down.
+        </p>
+
+        <form id="bannerForm" novalidate>
+            <div class="field" id="f-level">
+                <label for="in-level">Level</label>
+                <select id="in-level" name="level">
+                    <option value="">Loading levels</option>
+                </select>
+                <span class="err"></span>
+            </div>
+
+            <div class="field" id="f-url">
+                <label for="in-url">
+                    Video link
+                    <span class="hint">
+                        A direct link to an .mp4 or .webm file — the kind
+                        <a href="https://catbox.moe" target="_blank" rel="noopener noreferrer">catbox.moe</a>
+                        gives you. Not a YouTube link: YouTube hands out a player, not a video
+                        file, and a player cannot loop behind text.
+                    </span>
+                </label>
+                <input type="url" id="in-url" name="url" maxlength="400" autocomplete="off"
+                       placeholder="https://files.catbox.moe/example.mp4">
+                <span class="err"></span>
+            </div>
+
+            <div class="field hidden" id="f-preview">
+                <label>Preview</label>
+                <div class="banner-preview" id="bannerPreview"></div>
+                <div class="preview-note" id="previewNote"></div>
+            </div>
+
+            <div class="hp" aria-hidden="true">
+                <label for="in-website">Leave this empty</label>
+                <input type="text" id="in-website" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <button type="submit" class="btn-submit" id="bannerBtn">Send banner</button>
+            <p class="form-note" id="bannerNote"></p>
+        </form>
+
+        <div class="form-done hidden" id="bannerDone"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="notifications.js" defer></script>
+    <script src="banners.js" defer></script>
+</body>
+</html>

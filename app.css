@@ -88,11 +88,13 @@ a { color: inherit; }
 
 .shell {
     display: grid;
-    grid-template-columns: 440px minmax(0, 1fr);
-    gap: 22px;
-    padding: 22px 26px;
+    /* The list grows with the screen instead of sitting at one fixed width,
+       so a wide monitor gets a genuinely longer list rather than more margin. */
+    grid-template-columns: clamp(560px, 36vw, 980px) minmax(0, 1fr);
+    gap: 26px;
+    padding: 26px clamp(20px, 3vw, 56px);
     align-items: start;
-    max-width: 1500px;
+    max-width: 2560px;
     margin: 0 auto;
 }
 
@@ -100,7 +102,7 @@ a { color: inherit; }
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 128px);
     overflow-y: auto;
     padding-right: 4px;
 }
@@ -109,36 +111,102 @@ a { color: inherit; }
 
 .level-item {
     display: grid;
-    grid-template-columns: 96px 40px 1fr;
-    gap: 12px;
+    grid-template-columns: 132px 52px 1fr;
+    gap: 14px;
     align-items: center;
     background: var(--bg2);
     border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px;
+    border-radius: 11px;
+    padding: 13px;
     cursor: pointer;
     transition: border-color 0.15s ease, background 0.15s ease;
 }
 .level-item:hover { border-color: var(--accent); background: var(--bg3); }
 .level-item.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+/* Level banners - a short looping clip behind the row, in place of the flat
+   grey card. The row keeps its own stacking context so the video cannot
+   escape the rounded corners. */
+/* Always positioned, banner or not, so nothing absolute inside a row can ever
+   escape it and cover the page. */
+.level-item {
+    position: relative;
+    isolation: isolate;
+    /* The list is a scrolling column flex container, so its rows are flex
+       items and may shrink. Normally min-height:auto stops that at the
+       content size - but that protection disappears the moment an item gets
+       overflow:hidden, which banner rows need to clip the video to their
+       corners. Without this, banner rows collapse to a sliver as soon as the
+       list is taller than the screen. */
+    flex: 0 0 auto;
+}
+.level-item.has-banner { overflow: hidden; }
+.banner-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+}
+.banner-vid {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+    pointer-events: none;
+}
+/* Without this, a bright clip makes the name unreadable. Heavier on the left,
+   where the text sits, and lighter on the right so the clip still shows. */
+.banner-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(
+        90deg,
+        rgba(10, 10, 11, 0.92) 0%,
+        rgba(10, 10, 11, 0.80) 55%,
+        rgba(10, 10, 11, 0.55) 100%);
+}
+/* Everything except the banner wrapper sits above it. The wrapper must keep
+   its own absolute positioning, or it becomes a grid item and eats a column. */
+.level-item.has-banner > *:not(.banner-wrap) {
+    position: relative;
+    z-index: 2;
+}
+/* Hovering a banner row lifts the scrim a little, so the clip is the reward
+   for looking at it. */
+.level-item.has-banner:hover .banner-scrim {
+    background: linear-gradient(
+        90deg,
+        rgba(10, 10, 11, 0.86) 0%,
+        rgba(10, 10, 11, 0.68) 55%,
+        rgba(10, 10, 11, 0.38) 100%);
+}
+.level-item.has-banner .li-name,
+.level-item.has-banner .rank {
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+}
+
 .thumb {
-    width: 96px;
-    height: 58px;
-    border-radius: 6px;
+    width: 132px;
+    height: 78px;
+    border-radius: 7px;
     background: #18181b center / cover no-repeat;
     background-image: linear-gradient(135deg, #29292e, #141416);
 }
-.rank { color: var(--accent); font-weight: 800; font-size: 1.2rem; text-align: center; }
-.li-name { color: var(--text); font-weight: 700; font-size: 0.98rem; line-height: 1.25; }
-.li-pub { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
-.li-pts { color: var(--muted); font-size: 0.82rem; margin-top: 5px; }
+.rank { color: var(--accent); font-weight: 800; font-size: 1.5rem; text-align: center; }
+.li-name { color: var(--text); font-weight: 700; font-size: 1.12rem; line-height: 1.25; }
+.li-pub { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
+.li-pts { color: var(--muted); font-size: 0.88rem; margin-top: 6px; }
 .li-pts b { color: var(--accent); font-weight: 700; }
 
 .hero {
     background: var(--bg2);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 26px;
+    padding: 30px;
 }
 .hero-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .hero-title { margin: 0; font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--text); font-weight: 800; line-height: 1.1; }
@@ -150,6 +218,9 @@ a { color: inherit; }
     margin-top: 20px;
     width: 100%;
     aspect-ratio: 16 / 9;
+    /* A 16:9 box in a hero this wide gets tall enough to push the records off
+       the screen. Cap it and let the player letterbox itself. */
+    max-height: 62vh;
     border-radius: 10px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -614,6 +685,42 @@ form.locked .field { opacity: 0.5; }
     .nrow-when { margin-left: 0; width: 100%; }
 }
 
+/* Banner submission preview */
+.banner-preview {
+    width: 100%;
+    max-width: 520px;
+    aspect-ratio: 560 / 104;   /* the shape it will actually appear in */
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    background: #000;
+}
+.banner-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.preview-note { font-size: 0.84rem; margin-top: 9px; line-height: 1.5; color: var(--muted); }
+.note-good { color: var(--good); }
+.note-warn { color: #ffb54a; }
+.note-bad { color: var(--accent); }
+
+/* Banner review card */
+.bancard { grid-template-columns: 260px minmax(0, 1fr) auto; }
+.ban-preview {
+    width: 260px;
+    aspect-ratio: 560 / 104;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--border);
+}
+.ban-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ban-dead {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--accent);
+    font-size: 0.8rem;
+}
+
 /* Players */
 .name-link { text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
@@ -700,7 +807,7 @@ form.locked .field { opacity: 0.5; }
 .hist-by, .hist-note { color: var(--muted); }
 .hist-note { font-style: italic; }
 
-@media (max-width: 1080px) {
+@media (max-width: 1180px) {
     .shell { grid-template-columns: 1fr; }
     .level-list { max-height: none; }
 }
@@ -716,6 +823,8 @@ form.locked .field { opacity: 0.5; }
     .thumb { width: 80px; height: 48px; }
     .tools-shell { padding: 22px 16px 60px; }
     .qcard, .lvlcard { grid-template-columns: 62px minmax(0, 1fr); }
+    .bancard { grid-template-columns: minmax(0, 1fr); }
+    .ban-preview { width: 100%; }
     .q-thumb { width: 62px; height: 38px; }
     .q-actions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .q-actions > * { flex: 1; }

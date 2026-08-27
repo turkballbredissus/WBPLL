@@ -10,6 +10,7 @@
     let liveRecords = [];   // used to warn when accepting replaces an old record
     let history = [];
     let people = {};        // account id -> {display_name, role}
+    let bannerQueue = [];   // banners waiting on a decision
     let busy = false;
 
     // The submitter's name, tinted by rank and linked to their profile, so you
@@ -29,6 +30,7 @@
         root.textContent = '';
         root.appendChild(header());
         root.appendChild(el('div', 'queue', ''));
+        root.appendChild(el('div', 'section banner-section', ''));
         root.appendChild(el('div', 'section live-section', ''));
         root.appendChild(el('div', 'hist', ''));
         await refresh();
@@ -79,8 +81,15 @@
             .order('reviewed_at', { ascending: false })
             .limit(20);
 
-        const [a, b, c, roster] = await Promise.all([pending, existing, past, WB.people()]);
+        const banners = WB.client
+            .from('banner_submissions')
+            .select('id, url, account_id, account_name, created_at, level_row_id, levels ( name, position, list, banner )')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: true });
+
+        const [a, b, c, roster, d] = await Promise.all([pending, existing, past, WB.people(), banners]);
         people = roster || {};
+        bannerQueue = (d && d.data) || [];
 
         if (a.error) {
             list.textContent = '';
@@ -106,6 +115,7 @@
         } else {
             queue.forEach(sub => list.appendChild(card(sub)));
         }
+        renderBanners();
         renderLive();
         renderHistory();
     }
