@@ -299,6 +299,115 @@
         cardEl.querySelectorAll('button').forEach(b => { b.disabled = disabled; });
     }
 
+    // ------------------------------------------------------------- banners
+
+    // A banner is judged by watching it, so the card loops the clip at roughly
+    // the size it will appear. The thing to look for is the seam.
+    function renderBanners() {
+        const wrap = root.querySelector('.banner-section');
+        if (!wrap) return;
+        wrap.textContent = '';
+        wrap.appendChild(el('div', 'section-head',
+            bannerQueue.length ? 'Banners waiting (' + bannerQueue.length + ')' : 'Banners'));
+        wrap.appendChild(el('div', 'section-sub',
+            'A banner sits behind a level row on the list. Watch the loop: a visible jump at the seam is the usual reason to turn one down. It replaces whatever that level has now.'));
+
+        if (!bannerQueue.length) {
+            wrap.appendChild(el('div', 'q-empty', 'No banners waiting.'));
+            return;
+        }
+
+        bannerQueue.forEach(sub => {
+            const c = el('div', 'qcard bancard');
+
+            const shot = el('div', 'ban-preview');
+            const v = document.createElement('video');
+            v.src = sub.url;
+            v.muted = true;
+            v.loop = true;
+            v.autoplay = true;
+            v.playsInline = true;
+            v.preload = 'auto';
+            v.addEventListener('error', () => {
+                shot.textContent = '';
+                shot.appendChild(el('div', 'ban-dead', 'This link does not load'));
+            });
+            shot.appendChild(v);
+            c.appendChild(shot);
+
+            const main = el('div', 'q-main');
+            main.appendChild(el('div', 'q-title', sub.levels
+                ? '#' + sub.levels.position + '  ' + sub.levels.name
+                : 'a level that is gone'));
+
+            const meta = el('div', 'q-meta');
+            const by = el('span', '', 'sent by ');
+            by.appendChild(sentBy(sub));
+            meta.appendChild(by);
+            if (sub.created_at) meta.appendChild(el('span', '', WB.fmtWhen(sub.created_at)));
+            const open = el('a', 'rec-proof', 'Open the file');
+            open.href = sub.url;
+            open.target = '_blank';
+            open.rel = 'noopener noreferrer';
+            meta.appendChild(open);
+            main.appendChild(meta);
+
+            if (sub.levels && sub.levels.banner) {
+                main.appendChild(el('div', 'q-warn', 'This level already has a banner. Accepting replaces it.'));
+            }
+
+            const noteIn = el('input', 'q-note');
+            noteIn.type = 'text';
+            noteIn.placeholder = 'Reason, only if you deny (optional)';
+            noteIn.maxLength = 140;
+            main.appendChild(noteIn);
+            c.appendChild(main);
+
+            const actions = el('div', 'q-actions');
+            const yes = el('button', 'btn-accept', 'Accept');
+            yes.type = 'button';
+            yes.addEventListener('click', () => decideBanner(sub, 'accept', noteIn.value, c));
+            actions.appendChild(yes);
+
+            const no = el('button', 'btn-deny', 'Deny');
+            no.type = 'button';
+            no.addEventListener('click', () => decideBanner(sub, 'deny', noteIn.value, c));
+            actions.appendChild(no);
+            c.appendChild(actions);
+
+            wrap.appendChild(c);
+        });
+    }
+
+    async function decideBanner(sub, what, noteText, cardEl) {
+        if (busy) return;
+        const where = sub.levels ? sub.levels.name : 'that level';
+        if (!confirm(what === 'accept'
+            ? 'Put this banner behind ' + where + '?'
+            : 'Deny this banner?')) return;
+
+        busy = true;
+        setCardButtons(cardEl, true);
+        const call = what === 'accept'
+            ? WB.client.rpc('approve_banner', { p_submission: sub.id })
+            : WB.client.rpc('deny_banner', { p_submission: sub.id, p_note: noteText || null });
+
+        const { error } = await call;
+        busy = false;
+        if (error) {
+            setCardButtons(cardEl, false);
+            let msg = cardEl.querySelector('.q-error');
+            if (!msg) {
+                msg = el('div', 'q-error');
+                cardEl.querySelector('.q-main').appendChild(msg);
+            }
+            msg.textContent = WB.errText(error);
+            return;
+        }
+        cardEl.classList.add('gone');
+        setTimeout(refresh, 180);
+    }
+
     function renderHistory() {
         const wrap = root.querySelector('.hist');
         wrap.textContent = '';
