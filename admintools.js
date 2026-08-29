@@ -62,7 +62,7 @@
                 .order('created_at', { ascending: true }),
             WB.client
                 .from('levels')
-                .select('id, list, position, name, publisher, points')
+                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image')
                 .order('list', { ascending: true })
                 .order('position', { ascending: true }),
             WB.client
@@ -391,6 +391,18 @@
         });
         row.appendChild(jump);
 
+        // Owner only, enforced in the database. What the list claims about a
+        // level is yours to set, the same as removing one.
+        if (WB.atLeast('owner')) {
+            const edit = el('button', 'btn-ghost btn-edit', 'Edit');
+            edit.type = 'button';
+            edit.title = 'Edit this level’s details';
+            edit.addEventListener('click', () => toggleEditor(row, lvl, edit));
+            row.appendChild(edit);
+        } else {
+            row.appendChild(el('span', ''));
+        }
+
         // Owner only, enforced in the database. Admins place and reorder;
         // taking a level off destroys its records, so that is the owner's.
         if (WB.atLeast('owner')) {
@@ -404,6 +416,108 @@
         }
 
         return row;
+    }
+
+
+    // ------------------------------------------------------------ editing
+
+    // The editor opens as its own row underneath, rather than turning the row
+    // itself into a form - the list stays readable while one level is open,
+    // and dragging is unaffected.
+    function toggleEditor(row, lvl, btn) {
+        const open = row.nextElementSibling &&
+            row.nextElementSibling.classList.contains('edit-row');
+        // One at a time, so the list does not turn into a wall of forms.
+        const others = row.parentNode.querySelectorAll('.edit-row');
+        others.forEach(n => n.remove());
+        row.parentNode.querySelectorAll('.btn-edit').forEach(b => { b.textContent = 'Edit'; });
+        if (open) return;
+
+        btn.textContent = 'Close';
+        row.parentNode.insertBefore(buildEditor(row, lvl, btn), row.nextSibling);
+    }
+
+    function buildEditor(row, lvl, btn) {
+        const box = el('div', 'edit-row');
+        const grid = el('div', 'edit-grid');
+
+        const f = {};
+        f.name = editField(grid, 'Name', lvl.name || '', 'wide');
+        f.publisher = editField(grid, 'Publisher', lvl.publisher || '', 'wide');
+        f.image = editField(grid, 'Showcase link', lvl.image || '', 'wide');
+        f.verifier = editField(grid, 'Verifier', lvl.verifier || '');
+        f.level_id = editField(grid, 'Level ID', lvl.level_id || '');
+        f.points = editField(grid, 'Points', lvl.points == null ? '' : String(lvl.points));
+        f.version = editField(grid, 'Made in', lvl.version || '');
+        f.added = editField(grid, 'Uploaded', lvl.added || '');
+        box.appendChild(grid);
+
+        box.appendChild(el('div', 'edit-hint',
+            'Rank and which list it is on are not here — drag it or use the box for rank.'));
+
+        const msg = el('div', 'form-note');
+        const actions = el('div', 'edit-actions');
+
+        const save = el('button', 'btn-submit', 'Save');
+        save.type = 'button';
+        save.addEventListener('click', async () => {
+            if (busy) return;
+            const points = f.points.value.trim();
+            if (points !== '' && !isFinite(Number(points))) {
+                msg.textContent = 'Points have to be a number.';
+                return;
+            }
+
+            busy = true;
+            save.disabled = true;
+            save.textContent = 'Saving';
+            const { error } = await WB.client.rpc('edit_level', {
+                p_level: lvl.id,
+                p_name: f.name.value,
+                p_publisher: f.publisher.value,
+                p_level_id: f.level_id.value,
+                p_points: points === '' ? null : Number(points),
+                p_verifier: f.verifier.value,
+                p_version: f.version.value,
+                p_added: f.added.value,
+                p_image: f.image.value
+            });
+            busy = false;
+            save.disabled = false;
+            save.textContent = 'Save';
+
+            if (error) {
+                msg.textContent = WB.errText(error);
+                return;
+            }
+            btn.textContent = 'Edit';
+            box.remove();
+            refresh();
+        });
+        actions.appendChild(save);
+
+        const cancel = el('button', 'btn-ghost', 'Cancel');
+        cancel.type = 'button';
+        cancel.addEventListener('click', () => {
+            btn.textContent = 'Edit';
+            box.remove();
+        });
+        actions.appendChild(cancel);
+
+        box.appendChild(actions);
+        box.appendChild(msg);
+        return box;
+    }
+
+    function editField(grid, label, value, cls) {
+        const wrap = el('label', 'edit-field' + (cls ? ' ' + cls : ''));
+        wrap.appendChild(el('span', '', label));
+        const input = el('input');
+        input.type = 'text';
+        input.value = value;
+        wrap.appendChild(input);
+        grid.appendChild(wrap);
+        return input;
     }
 
     // Drag to reorder. Rows are a uniform height, so the rank the pointer is
