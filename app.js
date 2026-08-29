@@ -119,52 +119,60 @@
         watchBanners();
     }
 
-    // A banner is a short looping clip behind the row. Only an https link to a
-    // real video file is used; anything else is ignored rather than trusted.
-    const VIDEO_URL = /^https:\/\/[^\s]+\.(mp4|webm)(\?[^\s]*)?$/i;
-
+    // A banner sits behind the row: a short looping clip, or a still image.
+    // Which formats count is decided in auth.js, and the database enforces the
+    // same set, so a hand-crafted row cannot smuggle anything else in here.
     function bannerFor(lvl, item) {
-        if (!lvl.banner || !VIDEO_URL.test(lvl.banner)) return null;
-        // Someone who has asked their system not to animate things should not
-        // be handed a screen of looping video.
-        if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            return null;
-        }
+        const kind = WB.bannerKind(lvl.banner);
+        if (!kind) return null;
+        // Someone who asked their system not to animate things should not be
+        // handed a screen of moving banners. A still image is fine.
+        if (WB.reducedMotion() && WB.bannerMoves(lvl.banner)) return null;
 
-        // The clip and its scrim live in one wrapper so a dead link can take
+        // The media and its scrim live in one wrapper so a dead link can take
         // both away in a single step. Removing them separately once left a
         // full-page dark overlay behind, because an absolutely positioned
         // scrim with no positioned parent stretches to the whole document.
         const wrap = document.createElement('div');
         wrap.className = 'banner-wrap';
 
-        const v = document.createElement('video');
-        v.className = 'banner-vid';
-        v.src = lvl.banner;
-        v.muted = true;
-        v.loop = true;
-        v.playsInline = true;
-        v.autoplay = false;    // started by the observer once it is on screen
-        v.preload = 'none';    // and not downloaded before that
-        v.setAttribute('aria-hidden', 'true');
-        v.addEventListener('error', () => {
+        let media;
+        if (kind === 'video') {
+            media = document.createElement('video');
+            media.muted = true;
+            media.loop = true;
+            media.playsInline = true;
+            media.autoplay = false;   // started by the observer, once on screen
+            media.preload = 'none';   // and not downloaded before that
+        } else {
+            media = document.createElement('img');
+            media.loading = 'lazy';   // the browser handles the same job for images
+            media.decoding = 'async';
+            media.alt = '';
+        }
+        media.className = 'banner-media';
+        media.src = lvl.banner;
+        media.setAttribute('aria-hidden', 'true');
+
+        media.addEventListener('error', () => {
             // A dead or moved link should leave an ordinary row behind.
             item.classList.remove('has-banner');
             wrap.remove();
         });
 
-        // Heavier over the text, lighter towards the right, so the clip still
+        // Heavier over the text, lighter towards the right, so the banner still
         // shows without the name fighting it.
         const scrim = document.createElement('div');
         scrim.className = 'banner-scrim';
 
-        wrap.append(v, scrim);
+        wrap.append(media, scrim);
         return wrap;
     }
 
-    // Nothing plays until it is visible, and it stops on the way out. Eleven
-    // videos decoding at once would make the page crawl, and downloading clips
-    // for rows nobody scrolled to just spends the viewer's data.
+    // Videos do not play until visible, and stop on the way out. Eleven clips
+    // decoding at once would make the page crawl, and downloading them for rows
+    // nobody scrolled to just spends the viewer's data. Images are left to the
+    // browser's own lazy loading.
     let bannerObserver = null;
     function watchBanners() {
         if (bannerObserver) bannerObserver.disconnect();
@@ -183,7 +191,7 @@
             });
         }, { rootMargin: '200px' });
 
-        levelListEl.querySelectorAll('.banner-wrap .banner-vid').forEach(v => bannerObserver.observe(v));
+        levelListEl.querySelectorAll('video.banner-media').forEach(v => bannerObserver.observe(v));
     }
 
     function setMedia(lvl) {

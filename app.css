@@ -148,7 +148,7 @@ a { color: inherit; }
     border-radius: inherit;
     pointer-events: none;
 }
-.banner-vid {
+.banner-media {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -695,7 +695,8 @@ form.locked .field { opacity: 0.5; }
     overflow: hidden;
     background: #000;
 }
-.banner-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.banner-preview video,
+.banner-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .preview-note { font-size: 0.84rem; margin-top: 9px; line-height: 1.5; color: var(--muted); }
 .note-good { color: var(--good); }
 .note-warn { color: #ffb54a; }
@@ -711,7 +712,8 @@ form.locked .field { opacity: 0.5; }
     background: #000;
     border: 1px solid var(--border);
 }
-.ban-preview video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ban-preview video,
+.ban-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .ban-dead {
     display: flex;
     align-items: center;

@@ -321,18 +321,24 @@
             const c = el('div', 'qcard bancard');
 
             const shot = el('div', 'ban-preview');
-            const v = document.createElement('video');
-            v.src = sub.url;
-            v.muted = true;
-            v.loop = true;
-            v.autoplay = true;
-            v.playsInline = true;
-            v.preload = 'auto';
-            v.addEventListener('error', () => {
+            let media;
+            if (WB.bannerKind(sub.url) === 'image') {
+                media = document.createElement('img');
+                media.alt = '';
+            } else {
+                media = document.createElement('video');
+                media.muted = true;
+                media.loop = true;
+                media.autoplay = true;
+                media.playsInline = true;
+                media.preload = 'auto';
+            }
+            media.src = sub.url;
+            media.addEventListener('error', () => {
                 shot.textContent = '';
                 shot.appendChild(el('div', 'ban-dead', 'This link does not load'));
             });
-            shot.appendChild(v);
+            shot.appendChild(media);
             c.appendChild(shot);
 
             const main = el('div', 'q-main');

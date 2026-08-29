@@ -111,6 +111,30 @@ window.WB = (function () {
         return n;
     }
 
+    // What a banner is allowed to be, decided in one place so the submit page,
+    // the review queue and the list itself cannot drift apart. The database
+    // enforces the same set, so nothing here is the only line of defence.
+    const BANNER_VIDEO = /^https:\/\/[^\s]+\.(mp4|webm)(\?[^\s]*)?$/i;
+    const BANNER_IMAGE = /^https:\/\/[^\s]+\.(png|jpe?g|jfif|gif|webp|avif)(\?[^\s]*)?$/i;
+
+    // 'video', 'image', or null when it is not usable as a banner at all.
+    function bannerKind(url) {
+        if (typeof url !== 'string') return null;
+        const u = url.trim();
+        if (BANNER_VIDEO.test(u)) return 'video';
+        if (BANNER_IMAGE.test(u)) return 'image';
+        return null;
+    }
+
+    // A gif animates, so it counts as motion even though it is an image.
+    function bannerMoves(url) {
+        return bannerKind(url) === 'video' || /\.gif(\?[^\s]*)?$/i.test(String(url || ''));
+    }
+
+    function reducedMotion() {
+        return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
     // One place decides how a display name looks, so the colours cannot drift
     // apart between the leaderboard, the queues and the profile pages.
     function nameEl(text, role, tag) {
@@ -260,6 +284,9 @@ window.WB = (function () {
         currentList: currentList,
         rememberList: rememberList,
         people: people,
+        bannerKind: bannerKind,
+        bannerMoves: bannerMoves,
+        reducedMotion: reducedMotion,
         nameEl: nameEl,
         roleChip: roleChip,
         profileLink: profileLink,

@@ -20,7 +20,6 @@
     const el = WB.el;
 
     const MAX_SECONDS = 2;
-    const VIDEO_URL = /^https:\/\/[^\s]+\.(mp4|webm)(\?[^\s]*)?$/i;
 
     let checked = { url: '', ok: false, seconds: 0 };
 
@@ -36,7 +35,9 @@
                 return 'YouTube links cannot be used. Upload the file somewhere like catbox.moe and paste that link.';
             }
             if (!/^https:\/\//i.test(u)) return 'The link has to start with https://';
-            if (!VIDEO_URL.test(u)) return 'That is not a direct .mp4 or .webm link.';
+            if (!WB.bannerKind(u)) {
+                return 'That is not a direct link to a video or image file (.mp4, .webm, .png, .jpg, .jfif, .gif, .webp, .avif).';
+            }
             return '';
         }
     };
@@ -90,8 +91,28 @@
         previewNote.className = 'preview-note';
         checked = { url: url, ok: false, seconds: 0 };
 
+        const kind = WB.bannerKind(url);
+
+        // A still image has no length to check, so loading it at all is the
+        // whole test. Only clips get held to the two second rule.
+        if (kind === 'image') {
+            const img = document.createElement('img');
+            img.alt = '';
+            img.addEventListener('load', () => {
+                checked.ok = true;
+                say('Looks good. Check the important part is near the middle — the sides get cropped.', 'good');
+            });
+            img.addEventListener('error', () => {
+                checked.ok = false;
+                previewBox.textContent = '';
+                say('That link did not load. Check it opens the image directly in a new tab.', 'bad');
+            });
+            img.src = url;
+            previewBox.appendChild(img);
+            return;
+        }
+
         const v = document.createElement('video');
-        v.className = 'banner-preview-vid';
         v.src = url;
         v.muted = true;
         v.loop = true;
@@ -103,7 +124,7 @@
             const secs = v.duration;
             checked.seconds = secs;
             if (!isFinite(secs)) {
-                // Some hosts do not send a length. The moderator will see it anyway.
+                // Some hosts do not send a length. The moderator sees it anyway.
                 checked.ok = true;
                 say('Loaded. The length could not be read from this host, so make sure it is under two seconds.', 'warn');
                 return;
