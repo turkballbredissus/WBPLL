@@ -391,6 +391,16 @@
         });
         row.appendChild(jump);
 
+        // Sending it to the other list. Admin-level, like picking the list on
+        // the approve card and like reordering - it moves a level, it does not
+        // change what the level is.
+        const other = lvl.list === 'possible' ? 'impossible' : 'possible';
+        const swap = el('button', 'btn-ghost btn-swap', '→ ' + listTag(other));
+        swap.type = 'button';
+        swap.title = 'Move to the ' + (other === 'possible' ? 'possible' : 'impossible') + ' list';
+        swap.addEventListener('click', () => moveToList(lvl, other));
+        row.appendChild(swap);
+
         // Owner only, enforced in the database. What the list claims about a
         // level is yours to set, the same as removing one.
         if (WB.atLeast('owner')) {
@@ -418,6 +428,44 @@
         return row;
     }
 
+
+
+    function listTag(key) {
+        return key === 'possible' ? 'PPLL' : 'PILL';
+    }
+
+    // The rank is asked for rather than assumed, because dropping a level at
+    // the bottom of the other list is right about as often as it is wrong.
+    async function moveToList(lvl, target) {
+        if (busy) return;
+        const count = levels.filter(l => l.list === target).length;
+        const answer = prompt(
+            'Move "' + lvl.name + '" to the ' + listTag(target) + '.' +
+            ' Which rank should it land at? 1 is the top, and that list has ' +
+            count + ' level' + (count === 1 ? '' : 's') + ' right now.' +
+            ' Leave it blank to put it at the bottom.',
+            '');
+        if (answer === null) return;   // cancelled
+
+        const wanted = answer.trim();
+        if (wanted !== '' && !/^\d+$/.test(wanted)) {
+            alert('That is not a rank. Use a whole number, or leave it blank for the bottom.');
+            return;
+        }
+
+        busy = true;
+        const { error } = await WB.client.rpc('move_level_to_list', {
+            p_level: lvl.id,
+            p_list: target,
+            p_position: wanted === '' ? null : Number(wanted)
+        });
+        busy = false;
+        if (error) {
+            alert(WB.errText(error));
+            return;
+        }
+        refresh();
+    }
 
     // ------------------------------------------------------------ editing
 

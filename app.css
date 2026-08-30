@@ -547,7 +547,8 @@ form.locked .field { opacity: 0.5; }
     color: var(--accent);
 }
 
-.btn-edit { padding: 6px 12px; font-size: 0.78rem; }
+.btn-edit, .btn-swap { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; }
+.btn-swap { letter-spacing: 0.02em; }
 
 /* The level editor, opened as its own row under the level it belongs to */
 .edit-row {
@@ -589,7 +590,7 @@ form.locked .field { opacity: 0.5; }
 /* Drag to reorder the list */
 .drag-row {
     position: relative;
-    grid-template-columns: 26px 46px minmax(0, 1fr) 74px auto 34px;
+    grid-template-columns: 26px 46px minmax(0, 1fr) 74px auto auto 34px;
     transition: transform 0.14s ease, border-color 0.15s ease;
 }
 .drag-handle {
@@ -870,6 +871,6 @@ form.locked .field { opacity: 0.5; }
     .q-actions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .q-actions > * { flex: 1; }
     .list-row { grid-template-columns: 44px minmax(0, 1fr) 66px 34px; }
-    .drag-row { grid-template-columns: 24px 34px minmax(0, 1fr) 52px auto 28px; gap: 7px; }
+    .drag-row { grid-template-columns: 24px 32px minmax(0, 1fr) 48px auto auto 26px; gap: 6px; }
     .user-row { grid-template-columns: 84px minmax(0, 1fr) 120px; }
 }
