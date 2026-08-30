@@ -391,15 +391,18 @@
         });
         row.appendChild(jump);
 
-        // Sending it to the other list. Admin-level, like picking the list on
-        // the approve card and like reordering - it moves a level, it does not
-        // change what the level is.
-        const other = lvl.list === 'possible' ? 'impossible' : 'possible';
-        const swap = el('button', 'btn-ghost btn-swap', '→ ' + listTag(other));
-        swap.type = 'button';
-        swap.title = 'Move to the ' + (other === 'possible' ? 'possible' : 'impossible') + ' list';
-        swap.addEventListener('click', () => moveToList(lvl, other));
-        row.appendChild(swap);
+        // Owner only, enforced in the database. Which list a level belongs on
+        // is a claim about the level, the same as its name or its verifier.
+        if (WB.atLeast('owner')) {
+            const other = lvl.list === 'possible' ? 'impossible' : 'possible';
+            const swap = el('button', 'btn-ghost btn-swap', '→ ' + listTag(other));
+            swap.type = 'button';
+            swap.title = 'Move to the ' + (other === 'possible' ? 'possible' : 'impossible') + ' list';
+            swap.addEventListener('click', () => moveToList(lvl, other));
+            row.appendChild(swap);
+        } else {
+            row.appendChild(el('span', ''));
+        }
 
         // Owner only, enforced in the database. What the list claims about a
         // level is yours to set, the same as removing one.
