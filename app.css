@@ -198,6 +198,16 @@ a { color: inherit; }
 }
 .rank { color: var(--accent); font-weight: 800; font-size: 1.5rem; text-align: center; }
 .li-name { color: var(--text); font-weight: 700; font-size: 1.12rem; line-height: 1.25; }
+.li-cps {
+    margin-left: 8px;
+    color: var(--muted);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.level-item.has-banner .li-cps { color: #c9c9cf; }
 .li-pub { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
 .li-pts { color: var(--muted); font-size: 0.88rem; margin-top: 6px; }
 .li-pts b { color: var(--accent); font-weight: 700; }
@@ -267,6 +277,12 @@ a { color: inherit; }
 .form-intro { color: var(--muted); font-size: 0.95rem; line-height: 1.65; margin: 0 0 28px; }
 .field { margin-bottom: 18px; }
 .field label { display: block; color: var(--text); font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
+.hint-inline {
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.8rem;
+    margin-left: 6px;
+}
 .field .hint { display: block; color: var(--muted); font-weight: 400; font-size: 0.82rem; margin-top: 3px; }
 .field input, .field select {
     width: 100%;

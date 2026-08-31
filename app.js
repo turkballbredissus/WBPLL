@@ -19,6 +19,15 @@
     let people = {};   // account id -> {display_name, role}, for tinting names
     let list = WB.currentList();
 
+    // 32.50 reads as 32.5, and 30.00 as 30 - trailing zeros are noise on a
+    // number nobody measured to two decimal places anyway.
+    function formatCps(v) {
+        if (v === null || v === undefined || v === '') return '';
+        const n = Number(v);
+        if (!Number.isFinite(n) || n <= 0) return '';
+        return String(Number(n.toFixed(2))) + ' cps';
+    }
+
     function formatPoints(p) {
         const n = Number(p);
         return (Number.isFinite(n) ? n : 0).toFixed(2);
@@ -51,6 +60,7 @@
                 added: r.added,
                 image: r.image,
                 banner: r.banner,
+                cps: r.cps,
                 records: Array.isArray(r.records) ? r.records : []
             };
         });
@@ -63,7 +73,7 @@
         }
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, records ( player, percent, proof, account_id )')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, cps, records ( player, percent, proof, account_id )')
             .eq('list', list)
             .order('position', { ascending: true });
 
@@ -95,6 +105,15 @@
             const name = document.createElement('div');
             name.className = 'li-name';
             name.textContent = lvl.name || '';
+            // Small, next to the name, and absent entirely when nobody has
+            // worked one out yet - an empty "0 cps" would read as a fact.
+            const cps = formatCps(lvl.cps);
+            if (cps) {
+                const tag = document.createElement('span');
+                tag.className = 'li-cps';
+                tag.textContent = cps;
+                name.appendChild(tag);
+            }
             const pub = document.createElement('div');
             pub.className = 'li-pub';
             pub.textContent = 'published by ' + (lvl.publisher || 'unknown');

@@ -57,12 +57,12 @@
         const jobs = [
             WB.client
                 .from('level_submissions')
-                .select('id, name, publisher, level_id, showcase, placement, list, account_id, account_name, created_at')
+                .select('id, name, publisher, level_id, showcase, placement, list, cps, account_id, account_name, created_at')
                 .eq('status', 'pending')
                 .order('created_at', { ascending: true }),
             WB.client
                 .from('levels')
-                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image')
+                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image, cps')
                 .order('list', { ascending: true })
                 .order('position', { ascending: true }),
             WB.client
@@ -152,6 +152,9 @@
 
         const posIn = numField(grid, 'Place at', clampPos(sub.placement || 999, asked), 1, 999);
         const ptsIn = numField(grid, 'Points', 250, 0, 999999);
+        // Prefilled from the submission when they offered one, blank otherwise.
+        const cpsIn = textField(grid, 'Avg CPS', sub.cps == null ? '' : String(sub.cps));
+        cpsIn.placeholder = 'optional';
         // "...its impossible." is the joke for the impossible list; a possible
         // level has a real verifier, so that field starts empty for you to fill.
         const verIn = textField(grid, 'Verifier', asked === 'possible' ? '' : '...its impossible.');
@@ -186,6 +189,7 @@
             list: listIn.value,
             pos: clampPos(Number(posIn.value), listIn.value),
             points: Number(ptsIn.value),
+            cps: cpsIn.value.trim(),
             verifier: verIn.value,
             version: gdIn.value
         }, c));
@@ -277,6 +281,7 @@
             p_submission: sub.id,
             p_position: opts.pos,
             p_points: Number.isFinite(opts.points) ? opts.points : 250,
+            p_cps: opts.cps === '' ? null : Number(opts.cps),
             p_verifier: opts.verifier,
             p_version: opts.version,
             p_added: null,
@@ -499,6 +504,8 @@
         f.verifier = editField(grid, 'Verifier', lvl.verifier || '');
         f.level_id = editField(grid, 'Level ID', lvl.level_id || '');
         f.points = editField(grid, 'Points', lvl.points == null ? '' : String(lvl.points));
+        f.cps = editField(grid, 'Avg CPS', lvl.cps == null ? '' : String(lvl.cps));
+        f.cps.placeholder = 'blank to clear';
         f.version = editField(grid, 'Made in', lvl.version || '');
         f.added = editField(grid, 'Uploaded', lvl.added || '');
         box.appendChild(grid);
@@ -518,6 +525,11 @@
                 msg.textContent = 'Points have to be a number.';
                 return;
             }
+            const cps = f.cps.value.trim();
+            if (cps !== '' && (!isFinite(Number(cps)) || Number(cps) < 0)) {
+                msg.textContent = 'CPS has to be a number.';
+                return;
+            }
 
             busy = true;
             save.disabled = true;
@@ -531,7 +543,11 @@
                 p_verifier: f.verifier.value,
                 p_version: f.version.value,
                 p_added: f.added.value,
-                p_image: f.image.value
+                p_image: f.image.value,
+                p_cps: cps === '' ? null : Number(cps),
+                // Null means "leave it alone", so emptying the box needs to say
+                // so explicitly or a wrong number could never be taken back off.
+                p_clear_cps: cps === ''
             });
             busy = false;
             save.disabled = false;

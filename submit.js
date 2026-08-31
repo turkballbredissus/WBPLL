@@ -41,6 +41,17 @@
             if (!/^\d{1,12}$/.test(v.trim())) return 'The level ID is digits only.';
             return '';
         },
+        // Optional: blank is a perfectly good answer, but a number that is
+        // there has to actually be a number.
+        cps(v) {
+            const t = v.trim();
+            if (!t) return '';
+            if (!/^\d{1,4}(\.\d{1,2})?$/.test(t)) return 'Use a number like 32.5, or leave it blank.';
+            const n = Number(t);
+            if (n <= 0) return 'That has to be more than zero.';
+            if (n > 9999) return 'That is not a real click rate.';
+            return '';
+        },
         showcase(v) {
             if (!v.trim()) return 'Enter a showcase link.';
             if (!YT.test(v.trim())) return 'That is not a YouTube link.';
@@ -54,6 +65,7 @@
         list: document.getElementById('f-list'),
         placement: document.getElementById('f-placement'),
         levelId: document.getElementById('f-id'),
+        cps: document.getElementById('f-cps'),
         showcase: document.getElementById('f-showcase')
     };
     const inputEls = {
@@ -62,6 +74,7 @@
         list: document.getElementById('in-list'),
         placement: document.getElementById('in-placement'),
         levelId: document.getElementById('in-id'),
+        cps: document.getElementById('in-cps'),
         showcase: document.getElementById('in-showcase')
     };
 
@@ -161,6 +174,7 @@
             showcase: inputEls.showcase.value.trim(),
             list: inputEls.list.value,
             placement: Number(inputEls.placement.value),
+            cps: inputEls.cps.value.trim() === '' ? null : Number(inputEls.cps.value.trim()),
             account_id: user.id,
             account_name: WB.displayName()
         });
