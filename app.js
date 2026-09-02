@@ -13,6 +13,7 @@
         uploaded: document.getElementById('heroUploaded'),
         media: document.getElementById('heroMedia'),
         verifier: document.getElementById('heroVerifier'),
+        play: document.getElementById('heroPlay'),
         records: document.getElementById('heroRecords')
     };
     let levels = [];
@@ -213,6 +214,21 @@
         levelListEl.querySelectorAll('video.banner-media').forEach(v => bannerObserver.observe(v));
     }
 
+    // Web Dashers takes the level's own ID in the query string. A level with
+    // no ID, or one that is not a plain number, has nothing to open - the
+    // button is hidden rather than sending anyone to a broken page.
+    function setPlay(lvl) {
+        if (!hero.play) return;
+        const id = String(lvl.id == null ? '' : lvl.id).trim();
+        if (!/^\d{1,12}$/.test(id)) {
+            hero.play.classList.add('hidden');
+            hero.play.removeAttribute('href');
+            return;
+        }
+        hero.play.href = 'https://web-dashers.github.io/?id=' + encodeURIComponent(id);
+        hero.play.classList.remove('hidden');
+    }
+
     function setMedia(lvl) {
         hero.media.textContent = '';
         hero.media.style.backgroundImage = '';
@@ -300,6 +316,7 @@
         hero.version.textContent = lvl.version || '2.2';
         hero.uploaded.textContent = lvl.added || 'TBD';
         hero.verifier.textContent = lvl.verifier || '—';
+        setPlay(lvl);
         setMedia(lvl);
         renderRecords(lvl);
         Array.from(levelListEl.children).forEach((el, idx) => el.classList.toggle('active', idx === i));
