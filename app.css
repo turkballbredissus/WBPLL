@@ -878,6 +878,62 @@ form.locked .field { opacity: 0.5; }
 .hist-by, .hist-note { color: var(--muted); }
 .hist-note { font-style: italic; }
 
+/* A box that shows a number the database owns, rather than one to type in. */
+.q-field input[readonly], .edit-field input[readonly] {
+    color: var(--muted);
+    background: var(--bg);
+    cursor: default;
+}
+
+/* Rankings */
+.board { display: flex; flex-direction: column; gap: 8px; }
+.board-row {
+    display: grid;
+    grid-template-columns: 62px minmax(0, 1fr) auto;
+    gap: 14px;
+    align-items: center;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--border);
+    border-radius: 10px;
+    padding: 13px 16px;
+}
+.board-place { color: var(--muted); font-weight: 800; font-size: 1.15rem; text-align: center; }
+.board-who { min-width: 0; }
+.board-top-line { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.board-top-line .name { font-size: 1.05rem; }
+.board-sub { color: var(--muted); font-size: 0.8rem; margin-top: 5px; }
+.board-pts { display: flex; align-items: baseline; gap: 6px; white-space: nowrap; }
+.board-pts b { color: var(--text); font-weight: 800; font-size: 1.2rem; }
+.board-pts-label { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
+
+/* Gold, silver, bronze - only on the left edge and the place number, so the
+   rows still read as one list rather than three loose badges. */
+.board-top1 { border-left-color: var(--own); }
+.board-top1 .board-place, .board-top1 .board-pts b { color: var(--own); }
+.board-top2 { border-left-color: #b9bcc4; }
+.board-top2 .board-place, .board-top2 .board-pts b { color: #b9bcc4; }
+.board-top3 { border-left-color: #c68445; }
+.board-top3 .board-place, .board-top3 .board-pts b { color: #c68445; }
+
+/* Your own row, so you can find yourself without reading every name. */
+.board-me { background: var(--bg3); border-color: #3d3d42; }
+.board-foot { color: var(--muted); font-size: 0.8rem; line-height: 1.6; margin-top: 20px; }
+
+/* Points on a profile */
+.profile-score { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; }
+.profile-score b { color: var(--accent); font-weight: 800; font-size: 1.6rem; }
+.profile-score span { color: var(--muted); font-size: 0.88rem; }
+/* Percent, level, what it is worth, proof. Wider on the right than the plain
+   list row, because "proof" does not fit in the 38px slot that one leaves. */
+.rec-row-p { grid-template-columns: 52px minmax(0, 1fr) 92px 62px; }
+.rec-worth { color: var(--muted); font-size: 0.82rem; font-weight: 700; text-align: right; }
+.rec-worth b { color: var(--text); font-weight: 800; }
+/* A run that a better one on the same level has replaced. Still shown, because
+   the history is the interesting part, but plainly not counting. */
+.list-row.beaten { opacity: 0.5; }
+.list-row.beaten .rec-worth b { color: var(--muted); font-weight: 700; }
+
 @media (max-width: 1180px) {
     .shell { grid-template-columns: 1fr; }
     .level-list { max-height: none; }
@@ -900,6 +956,9 @@ form.locked .field { opacity: 0.5; }
     .q-actions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .q-actions > * { flex: 1; }
     .list-row { grid-template-columns: 44px minmax(0, 1fr) 66px 34px; }
+    .rec-row-p { grid-template-columns: 44px minmax(0, 1fr) 76px 54px; }
+    .board-row { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 11px 12px; }
+    .board-pts b { font-size: 1.05rem; }
     .drag-row { grid-template-columns: 24px 32px minmax(0, 1fr) 48px auto auto 26px; gap: 6px; }
     .user-row { grid-template-columns: 84px minmax(0, 1fr) 120px; }
 }

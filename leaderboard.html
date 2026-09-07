@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rankings - WBPLL</title>
+    <meta name="description" content="Every WBPLL player ranked by points">
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link rel="stylesheet" href="app.css">
+</head>
+<body>
+    <nav class="nav">
+        <a class="brandlink" href="index.html">
+            <img class="logo" src="favicon.png" alt="">
+            <span class="brand">WBPLL</span>
+        </a>
+        <span class="links">
+            <a href="index.html">Leaderboard</a>
+            <a href="submit.html">Submit a level</a>
+            <a href="records.html">Submit a record</a>
+            <a href="banners.html">Submit a banner</a>
+        </span>
+        <span class="nav-account" id="navAccount"></span>
+    </nav>
+
+    <div class="tools-shell" id="boardRoot">
+        <div class="tools-loading">Loading…</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="supabase-config.js" defer></script>
+    <script src="auth.js" defer></script>
+    <script src="notifications.js" defer></script>
+    <script src="leaderboard.js" defer></script>
+</body>
+</html>

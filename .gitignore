@@ -9,6 +9,7 @@ SETUP.md
 # Stale, describes an older version of this project
 README.md
 
-# Local harnesses that fill the tools with fake rows
-_h_*.html
+# Local harnesses that fill the tools with fake rows. The pattern covers the
+# shared stub script too, which is why it is not just _h_*.html any more.
+_h_*
 _harness.html

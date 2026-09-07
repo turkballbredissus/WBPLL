@@ -186,6 +186,23 @@ window.WB = (function () {
         return msg;
     }
 
+    // Point totals show on the rankings, on a profile and next to every record,
+    // so the rounding lives here rather than being retyped on each page. The
+    // database has already rounded to one decimal; this only decides how it
+    // reads - grouped, and with no ".0" hanging off a whole number.
+    // en-US on purpose, not the visitor's own locale. On a Turkish or German
+    // browser the default puts a comma where the decimal point goes, so 573.1
+    // points renders as "573,1" and reads as five and a half thousand. A score
+    // has to mean the same thing to everyone looking at the same board.
+    function fmtPoints(n) {
+        const v = Number(n);
+        if (!Number.isFinite(v)) return '0';
+        return v.toLocaleString('en-US', {
+            minimumFractionDigits: v % 1 === 0 ? 0 : 1,
+            maximumFractionDigits: 1
+        });
+    }
+
     function fmtWhen(iso) {
         if (!iso) return '';
         const d = new Date(iso);
@@ -201,6 +218,11 @@ window.WB = (function () {
         const here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
 
         if (links) {
+            // Straight after the list itself, since it is the same subject seen
+            // from the other side. Inserted here rather than written into eight
+            // pages of markup, so the highlighting has one set of rules.
+            links.insertBefore(toolLink('leaderboard.html', 'Rankings', here),
+                               links.children[1] || null);
             links.appendChild(toolLink('profile.html', 'Players', here));
             if (atLeast('moderator')) links.appendChild(toolLink('modtools.html', 'Mod Tools', here));
             if (atLeast('admin')) links.appendChild(toolLink('admintools.html', 'Admin Tools', here));
@@ -291,6 +313,7 @@ window.WB = (function () {
         roleChip: roleChip,
         profileLink: profileLink,
         errText: errText,
+        fmtPoints: fmtPoints,
         fmtWhen: fmtWhen
     };
 })();

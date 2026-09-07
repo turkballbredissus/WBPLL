@@ -31,9 +31,10 @@
     // ------------------------------------------------------------- roster
 
     async function showRoster() {
-        const [people, records] = await Promise.all([
+        const [people, records, board] = await Promise.all([
             WB.client.from('profiles').select('id, display_name, role, disabled, created_at'),
-            WB.client.from('records').select('account_id')
+            WB.client.from('records').select('account_id'),
+            WB.client.rpc('leaderboard')
         ]);
 
         root.textContent = '';
@@ -46,6 +47,11 @@
         ((records && records.data) || []).forEach(r => {
             if (r.account_id) counts[r.account_id] = (counts[r.account_id] || 0) + 1;
         });
+
+        // Only people who have scored appear in the rankings, so anyone missing
+        // from this map has no points rather than an unknown number of them.
+        const scores = {};
+        ((board && board.data) || []).forEach(b => { scores[b.account_id] = b; });
 
         // Disabled accounts drop off the public roster. Staff still see them in
         // Admin Tools; there is no reason to label someone publicly.
@@ -75,6 +81,11 @@
             if (p.role !== 'user') top.appendChild(WB.roleChip(p.role));
             card.appendChild(top);
 
+            const s = scores[p.id];
+            card.appendChild(el('div', 'roster-sub', s
+                ? WB.fmtPoints(s.points) + ' points · #' + s.place
+                : 'no points yet'));
+
             const n = counts[p.id] || 0;
             card.appendChild(el('div', 'roster-sub',
                 (n === 1 ? '1 record on the list' : n + ' records on the list')));
@@ -87,13 +98,14 @@
     // ---------------------------------------------------------- one person
 
     async function showOne(id) {
-        const [who, recs] = await Promise.all([
+        // player_records hands back each run already priced, and leaderboard
+        // hands back the place. Both are worked out by the database, so a
+        // profile can never disagree with the rankings about a total.
+        const [who, recs, board] = await Promise.all([
             WB.client.from('profiles').select('id, display_name, role, created_at')
                 .eq('id', id).maybeSingle(),
-            WB.client.from('records')
-                .select('percent, proof, levels ( name, position )')
-                .eq('account_id', id)
-                .order('percent', { ascending: false })
+            WB.client.rpc('player_records', { p_id: id }),
+            WB.client.rpc('leaderboard')
         ]);
 
         root.textContent = '';
@@ -119,6 +131,16 @@
         badges.appendChild(WB.roleChip(p.role));
         badges.appendChild(el('span', 'profile-joined', 'joined ' + WB.fmtWhen(p.created_at)));
         head.appendChild(badges);
+
+        const mine = ((board && board.data) || []).find(b => b.account_id === p.id);
+        const score = el('div', 'profile-score');
+        score.appendChild(el('b', '', mine ? WB.fmtPoints(mine.points) : '0'));
+        // Somebody off the board has no place to show, so it says why instead
+        // of printing a rank they do not have.
+        score.appendChild(el('span', '', mine
+            ? 'points · #' + mine.place + ' on the rankings'
+            : 'points · not on the rankings yet'));
+        head.appendChild(score);
         root.appendChild(head);
 
         if (isMe) root.appendChild(renameBox(p));
@@ -135,17 +157,25 @@
         } else {
             const best = rows[0];
             sec.appendChild(el('div', 'section-sub',
-                'Furthest so far: ' + best.percent + '% on ' +
-                (best.levels ? best.levels.name : 'a level')));
+                'Furthest so far: ' + best.percent + '% on ' + (best.level_name || 'a level') +
+                '. A run that a better one on the same level has replaced is faded, ' +
+                'and counts nothing.'));
 
             rows.forEach(r => {
-                const row = el('div', 'list-row');
+                const row = el('div', 'list-row rec-row-p');
+                if (!r.counts) row.classList.add('beaten');
                 row.appendChild(el('span', 'rank', r.percent + '%'));
 
                 const mid = el('div', '');
-                mid.appendChild(el('div', 'li-name', r.levels ? r.levels.name : 'unknown level'));
-                mid.appendChild(el('div', 'li-pub', r.levels ? '#' + r.levels.position + ' on the list' : ''));
+                mid.appendChild(el('div', 'li-name', r.level_name || 'unknown level'));
+                mid.appendChild(el('div', 'li-pub',
+                    '#' + r.level_position + ' on ' + WB.listInfo(r.level_list).long.toLowerCase()));
                 row.appendChild(mid);
+
+                const worth = el('div', 'rec-worth');
+                worth.appendChild(el('b', '', WB.fmtPoints(r.points)));
+                worth.appendChild(document.createTextNode(' pts'));
+                row.appendChild(worth);
 
                 if (r.proof) {
                     const a = el('a', 'rec-proof', 'proof');
@@ -156,7 +186,6 @@
                 } else {
                     row.appendChild(el('span', ''));
                 }
-                row.appendChild(el('span', ''));
                 sec.appendChild(row);
             });
         }

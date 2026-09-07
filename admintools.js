@@ -151,7 +151,14 @@
         const listIn = selectField(grid, 'List', WB.LISTS.map(l => ({ value: l.key, text: l.long })), asked);
 
         const posIn = numField(grid, 'Place at', clampPos(sub.placement || 999, asked), 1, 999);
-        const ptsIn = numField(grid, 'Points', 250, 0, 999999);
+        // Points are no longer typed in. A level is worth whatever its place on
+        // the list is worth, and the database keeps the column in step whenever
+        // anything moves - so a number typed here would be wrong the first time
+        // somebody dragged the list. Shown read-only so the placement decision
+        // still shows its price.
+        const ptsIn = textField(grid, 'Points', '…');
+        ptsIn.readOnly = true;
+        ptsIn.title = 'Worked out from the place on the list';
         // Prefilled from the submission when they offered one, blank otherwise.
         const cpsIn = textField(grid, 'Avg CPS', sub.cps == null ? '' : String(sub.cps));
         cpsIn.placeholder = 'optional';
@@ -163,8 +170,22 @@
 
         const preview = el('div', 'q-preview');
         main.appendChild(preview);
+
+        // Only the database knows the scale, so the worth of a place is asked
+        // for rather than worked out here. The token drops a reply that arrives
+        // after a newer one, which typing a two-digit place makes likely.
+        let ptsToken = 0;
+        const updatePoints = async () => {
+            const mine = ++ptsToken;
+            const pos = clampPos(Number(posIn.value), listIn.value);
+            const { data, error } = await WB.client.rpc('position_points', { p_position: pos });
+            if (mine !== ptsToken) return;
+            ptsIn.value = error ? 'automatic' : WB.fmtPoints(data);
+        };
+
         const updatePreview = () => {
             preview.textContent = previewText(sub, Number(posIn.value), listIn.value);
+            updatePoints();
         };
         posIn.addEventListener('input', updatePreview);
         listIn.addEventListener('change', () => {
@@ -188,7 +209,6 @@
         yes.addEventListener('click', () => approve(sub, {
             list: listIn.value,
             pos: clampPos(Number(posIn.value), listIn.value),
-            points: Number(ptsIn.value),
             cps: cpsIn.value.trim(),
             verifier: verIn.value,
             version: gdIn.value
@@ -280,7 +300,11 @@
         const { error } = await WB.client.rpc('approve_level', {
             p_submission: sub.id,
             p_position: opts.pos,
-            p_points: Number.isFinite(opts.points) ? opts.points : 250,
+            // Still sent, and immediately overwritten: the levels trigger sets
+            // points from the position in the same transaction. Kept in the
+            // call rather than dropped so the argument list keeps matching the
+            // function exactly, which is what PostgREST resolves on.
+            p_points: 250,
             p_cps: opts.cps === '' ? null : Number(opts.cps),
             p_verifier: opts.verifier,
             p_version: opts.version,
@@ -503,7 +527,13 @@
         f.image = editField(grid, 'Showcase link', lvl.image || '', 'wide');
         f.verifier = editField(grid, 'Verifier', lvl.verifier || '');
         f.level_id = editField(grid, 'Level ID', lvl.level_id || '');
-        f.points = editField(grid, 'Points', lvl.points == null ? '' : String(lvl.points));
+        // Read-only: a level is worth whatever its place on the list is worth,
+        // and the database resets this column every time anything moves. An
+        // editable box here would just be a number that never sticks.
+        f.points = editField(grid, 'Points',
+            lvl.points == null ? '' : WB.fmtPoints(lvl.points));
+        f.points.readOnly = true;
+        f.points.title = 'Worked out from the place on the list';
         f.cps = editField(grid, 'Avg CPS', lvl.cps == null ? '' : String(lvl.cps));
         f.cps.placeholder = 'blank to clear';
         f.version = editField(grid, 'Made in', lvl.version || '');
@@ -511,7 +541,8 @@
         box.appendChild(grid);
 
         box.appendChild(el('div', 'edit-hint',
-            'Rank and which list it is on are not here — drag it or use the box for rank.'));
+            'Rank and which list it is on are not here — drag it or use the box for rank. ' +
+            'Points follow the rank on their own, so moving a level changes what it is worth.'));
 
         const msg = el('div', 'form-note');
         const actions = el('div', 'edit-actions');
@@ -520,11 +551,6 @@
         save.type = 'button';
         save.addEventListener('click', async () => {
             if (busy) return;
-            const points = f.points.value.trim();
-            if (points !== '' && !isFinite(Number(points))) {
-                msg.textContent = 'Points have to be a number.';
-                return;
-            }
             const cps = f.cps.value.trim();
             if (cps !== '' && (!isFinite(Number(cps)) || Number(cps) < 0)) {
                 msg.textContent = 'CPS has to be a number.';
@@ -539,7 +565,9 @@
                 p_name: f.name.value,
                 p_publisher: f.publisher.value,
                 p_level_id: f.level_id.value,
-                p_points: points === '' ? null : Number(points),
+                // Null means "leave it alone", which is right: the trigger sets
+                // it from the position the moment this update lands.
+                p_points: null,
                 p_verifier: f.verifier.value,
                 p_version: f.version.value,
                 p_added: f.added.value,

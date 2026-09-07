@@ -29,10 +29,10 @@
         return String(Number(n.toFixed(2))) + ' cps';
     }
 
-    function formatPoints(p) {
-        const n = Number(p);
-        return (Number.isFinite(n) ? n : 0).toFixed(2);
-    }
+    // Points are no longer a round 250 on every level - they come off the
+    // position now - so two decimals would put "163.08" on the row. One place
+    // is plenty, and the same rounding is used everywhere else.
+    const formatPoints = WB.fmtPoints;
 
     // Detect a YouTube link (watch, youtu.be, embed, shorts) and return its 11-char id.
     function youtubeId(url) {
