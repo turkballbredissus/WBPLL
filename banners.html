@@ -6,7 +6,7 @@
     <title>Submit a banner | WBPLL</title>
     <meta name="description" content="Submit a level banner to the WBPLL list">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="app.css?v=20260907">
 </head>
 <body>
     <nav class="nav">
@@ -40,11 +40,9 @@
                 <label for="in-url">
                     Banner link
                     <span class="hint">
-                        A direct link to a video (.mp4, .webm) or an image (.png, .jpg,
-                        .jfif, .gif, .webp) — the kind
-                        <a href="https://catbox.moe" target="_blank" rel="noopener noreferrer">catbox.moe</a>
-                        gives you. Not a YouTube link: YouTube hands out a player, not a video
-                        file, and a player cannot loop behind text.
+                        A direct .mp4, .webm, .png, .jpg, .gif or .webp link, from
+                        <a href="https://catbox.moe" target="_blank" rel="noopener noreferrer">catbox.moe</a>.
+                        Not YouTube.
                     </span>
                 </label>
                 <input type="url" id="in-url" name="url" maxlength="400" autocomplete="off"
@@ -71,9 +69,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="supabase-config.js" defer></script>
-    <script src="auth.js" defer></script>
-    <script src="notifications.js" defer></script>
-    <script src="banners.js" defer></script>
+    <script src="supabase-config.js?v=20260907" defer></script>
+    <script src="auth.js?v=20260907" defer></script>
+    <script src="notifications.js?v=20260907" defer></script>
+    <script src="banners.js?v=20260907" defer></script>
 </body>
 </html>
