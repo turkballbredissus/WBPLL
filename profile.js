@@ -62,8 +62,6 @@
 
         const head = el('div', 'tools-head');
         head.appendChild(el('h1', 'form-title', 'Players'));
-        head.appendChild(el('p', 'form-intro',
-            'Everyone with an account, staff first. Red is a moderator, blue an admin, yellow the owner.'));
         root.appendChild(head);
 
         if (!list.length) {

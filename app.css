@@ -287,6 +287,8 @@ a { color: inherit; }
 /* Submission form */
 .form-shell { max-width: 640px; margin: 0 auto; padding: 30px 26px 60px; }
 .form-title { margin: 0 0 10px; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; }
+/* Same as above: on the submit pages the form now follows the heading directly. */
+.form-shell > .form-title { margin-bottom: 28px; }
 .form-intro { color: var(--muted); font-size: 0.95rem; line-height: 1.65; margin: 0 0 28px; }
 .field { margin-bottom: 18px; }
 .field label { display: block; color: var(--text); font-weight: 700; font-size: 0.9rem; margin-bottom: 6px; }
@@ -420,6 +422,9 @@ form.locked .field { opacity: 0.5; }
 .tools-shell { max-width: 980px; margin: 0 auto; padding: 30px 26px 70px; }
 .tools-loading { color: var(--muted); font-size: 0.9rem; }
 .tools-head .form-intro { margin-bottom: 18px; }
+/* Pages with no intro paragraph under the heading. That paragraph used to be
+   what held the title off the content, so without it the gap comes from here. */
+.tools-head .form-title:last-child { margin-bottom: 24px; }
 .tools-bar {
     display: flex;
     align-items: center;

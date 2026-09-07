@@ -27,11 +27,6 @@
 
         const head = el('div', 'tools-head');
         head.appendChild(el('h1', 'form-title', 'Rankings'));
-        head.appendChild(el('p', 'form-intro',
-            'Every player with points, best first. The #1 level is worth 250 points and ' +
-            'each place down the list is worth a little less. Nobody finishes these, so ' +
-            'partial runs pay well — a fifth of the way into the #1 is worth about 110 ' +
-            'points, and 3% still scores. Only your furthest run on each level counts.'));
         root.appendChild(head);
 
         if (error) {
@@ -75,9 +70,5 @@
             board.appendChild(row);
         });
         root.appendChild(board);
-
-        root.appendChild(el('p', 'board-foot',
-            'Records that were never tied to an account earn nothing, and disabled ' +
-            'accounts are left off.'));
     });
 })();
