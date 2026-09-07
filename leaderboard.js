@@ -30,8 +30,8 @@
         head.appendChild(el('p', 'form-intro',
             'Every player with points, best first. The #1 level is worth 250 points and ' +
             'each place down the list is worth a little less. Nobody finishes these, so ' +
-            'partial runs pay well — a fifth of the way into the #1 is worth about 99 ' +
-            'points. Under 5% scores nothing, and only your furthest run on each level counts.'));
+            'partial runs pay well — a fifth of the way into the #1 is worth about 110 ' +
+            'points, and 3% still scores. Only your furthest run on each level counts.'));
         root.appendChild(head);
 
         if (error) {
