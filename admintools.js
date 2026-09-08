@@ -178,7 +178,8 @@
         const updatePoints = async () => {
             const mine = ++ptsToken;
             const pos = clampPos(Number(posIn.value), listIn.value);
-            const { data, error } = await WB.client.rpc('position_points', { p_position: pos });
+            const { data, error } = await WB.client.rpc('position_points',
+                { p_position: pos, p_list: listIn.value });
             if (mine !== ptsToken) return;
             ptsIn.value = error ? 'automatic' : WB.fmtPoints(data);
         };
