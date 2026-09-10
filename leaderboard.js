@@ -59,7 +59,7 @@
             who.appendChild(top);
             who.appendChild(el('div', 'board-sub',
                 plural(r.levels_counted, 'level', 'levels') +
-                ' · best ' + r.best_percent + '%'));
+                ' · best ' + WB.fmtPercent(r.best_percent) + '%'));
             row.appendChild(who);
 
             const pts = el('div', 'board-pts');

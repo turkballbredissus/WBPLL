@@ -73,7 +73,7 @@
 
         ((res[0] && res[0].data) || []).forEach(r => out.push({
             type: 'record-' + r.status,
-            subject: r.percent + '% on ' + (r.levels ? r.levels.name : 'a level'),
+            subject: WB.fmtPercent(r.percent) + '% on ' + (r.levels ? r.levels.name : 'a level'),
             note: r.note,
             denied: r.status !== 'approved',
             at: stamp(r.reviewed_at)
@@ -89,7 +89,7 @@
 
         ((res[2] && res[2].data) || []).forEach(r => out.push({
             type: 'new-record',
-            subject: (r.player || 'someone') + ' · ' + r.percent + '% on ' +
+            subject: (r.player || 'someone') + ' · ' + WB.fmtPercent(r.percent) + '% on ' +
                 (r.levels ? r.levels.name : 'a level'),
             href: 'modtools.html',
             at: stamp(r.created_at)

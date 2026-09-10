@@ -6,7 +6,7 @@
     <title>Submit a record | WBPLL</title>
     <meta name="description" content="Submit a record to the WBPLL list">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="stylesheet" href="app.css?v=20260908">
+    <link rel="stylesheet" href="app.css?v=20260910c">
 </head>
 <body>
     <nav class="nav">
@@ -45,9 +45,9 @@
             <div class="field" id="f-percent">
                 <label for="in-percent">
                     Percent reached
-                    <span class="hint">A whole number from 1 to 100.</span>
+                    <span class="hint">Up to two decimals, like 6.83.</span>
                 </label>
-                <input type="number" id="in-percent" name="percent" min="1" max="100" step="1" autocomplete="off">
+                <input type="number" id="in-percent" name="percent" min="0.01" max="100" step="0.01" autocomplete="off">
                 <span class="err"></span>
             </div>
 
@@ -73,9 +73,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="supabase-config.js?v=20260908" defer></script>
-    <script src="auth.js?v=20260908" defer></script>
-    <script src="notifications.js?v=20260908" defer></script>
-    <script src="records.js?v=20260908" defer></script>
+    <script src="supabase-config.js?v=20260910c" defer></script>
+    <script src="auth.js?v=20260910c" defer></script>
+    <script src="notifications.js?v=20260910c" defer></script>
+    <script src="records.js?v=20260910c" defer></script>
 </body>
 </html>

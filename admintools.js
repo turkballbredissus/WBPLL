@@ -11,7 +11,32 @@
     let history = [];
     let people = [];        // the Accounts panel roster
     let peopleById = {};    // account id -> {display_name, role}, for tinting names
+    let allTags = [];       // every tag that exists, for the pickers below
     let busy = false;
+
+    // A row of tickable chips. Returns a function giving back the slugs that
+    // are on, so the caller never has to read the DOM itself. Used by both the
+    // approve card and the level editor.
+    function tagPicker(mount, selected) {
+        const chosen = new Set(selected || []);
+        mount.textContent = '';
+        if (!allTags.length) {
+            mount.appendChild(el('span', 'q-empty', 'No tags exist yet.'));
+            return () => [];
+        }
+        allTags.forEach(t => {
+            const chip = WB.tagChip(t);
+            chip.classList.add('tag-pick');
+            chip.classList.toggle('on', chosen.has(t.slug));
+            chip.addEventListener('click', () => {
+                if (chosen.has(t.slug)) chosen.delete(t.slug);
+                else chosen.add(t.slug);
+                chip.classList.toggle('on', chosen.has(t.slug));
+            });
+            mount.appendChild(chip);
+        });
+        return () => allTags.map(t => t.slug).filter(s => chosen.has(s));
+    }
 
     const YT = /(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 
@@ -62,7 +87,7 @@
                 .order('created_at', { ascending: true }),
             WB.client
                 .from('levels')
-                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image, cps')
+                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image, cps, level_tags ( tags ( slug, label, colour, sort ) )')
                 .order('list', { ascending: true })
                 .order('position', { ascending: true }),
             WB.client
@@ -77,6 +102,7 @@
 
         const res = await Promise.all(jobs);
         peopleById = await WB.people();
+        allTags = await WB.reloadTags();
         if (res[0].error) {
             list.textContent = '';
             list.appendChild(el('div', 'q-error', WB.errText(res[0].error)));
@@ -168,6 +194,14 @@
         const gdIn = textField(grid, 'Made in', '2.2');
         main.appendChild(grid);
 
+        // Tags go on at approval so a level never appears on the list untagged
+        // and stays that way because nobody went back for it. Click to toggle;
+        // none selected is a perfectly good answer.
+        const tagBox = el('div', 'tag-picker');
+        main.appendChild(el('div', 'tag-picker-head', 'Tags'));
+        main.appendChild(tagBox);
+        const getTags = tagPicker(tagBox, []);
+
         const preview = el('div', 'q-preview');
         main.appendChild(preview);
 
@@ -211,6 +245,7 @@
             list: listIn.value,
             pos: clampPos(Number(posIn.value), listIn.value),
             cps: cpsIn.value.trim(),
+            tags: getTags(),
             verifier: verIn.value,
             version: gdIn.value
         }, c));
@@ -307,6 +342,7 @@
             // function exactly, which is what PostgREST resolves on.
             p_points: 250,
             p_cps: opts.cps === '' ? null : Number(opts.cps),
+            p_tags: opts.tags,
             p_verifier: opts.verifier,
             p_version: opts.version,
             p_added: null,
@@ -544,6 +580,35 @@
         box.appendChild(el('div', 'edit-hint',
             'Rank and which list it is on are not here — drag it or use the box for rank. ' +
             'Points follow the rank on their own, so moving a level changes what it is worth.'));
+
+        // Tags save on their own button, not with the details. They are a
+        // different call with a different permission behind it, and folding
+        // them together would mean one Save doing two jobs.
+        box.appendChild(el('div', 'tag-picker-head', 'Tags'));
+        const tagBox = el('div', 'tag-picker');
+        box.appendChild(tagBox);
+        const getTags = tagPicker(tagBox, WB.tagsOf(lvl).map(t => t.slug));
+
+        const tagSave = el('button', 'btn-ghost', 'Save tags');
+        tagSave.type = 'button';
+        tagSave.addEventListener('click', async () => {
+            if (busy) return;
+            busy = true;
+            tagSave.disabled = true;
+            tagSave.textContent = 'Saving';
+            const { error } = await WB.client.rpc('set_level_tags',
+                { p_level: lvl.id, p_slugs: getTags() });
+            busy = false;
+            tagSave.disabled = false;
+            tagSave.textContent = 'Save tags';
+            if (error) {
+                msg.textContent = WB.errText(error);
+                return;
+            }
+            msg.textContent = 'Tags saved.';
+            refresh();
+        });
+        box.appendChild(tagSave);
 
         const msg = el('div', 'form-note');
         const actions = el('div', 'edit-actions');

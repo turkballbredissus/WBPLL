@@ -208,6 +208,38 @@ a { color: inherit; }
     vertical-align: middle;
 }
 .level-item.has-banner .li-cps { color: #c9c9cf; }
+
+/* How long a level runs. The colours warm up with the length so the shape of
+   the list reads at a glance, without turning into five loud badges. */
+.tag-chip {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 7px;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--bg3);
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+/* Named palette entries, not colours the owner types - a tag can only ever pick
+   one of these, so nothing it carries can reach the stylesheet. */
+.tag-c-neutral { color: var(--muted); border-color: var(--border); }
+.tag-c-green   { color: #7fc4a0; border-color: #2c5642; }
+.tag-c-blue    { color: #86b6e0; border-color: #2a4763; }
+.tag-c-yellow  { color: #d7c078; border-color: #5d5024; }
+.tag-c-orange  { color: #e0a06a; border-color: #6a4526; }
+.tag-c-red     { color: #e07a7a; border-color: #6b2a2a; }
+.tag-c-purple  { color: #b79ae0; border-color: #4a3a6b; }
+.tag-c-gold    { color: var(--own); border-color: #6d5a12; }
+
+/* A level can carry several, so they wrap instead of stretching the line. */
+.tag-row { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
+.tag-row .tag-chip { margin-left: 0; }
 .li-pub { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
 .li-pts { color: var(--muted); font-size: 0.88rem; margin-top: 6px; }
 .li-pts b { color: var(--accent); font-weight: 700; }
@@ -466,10 +498,12 @@ form.locked .field { opacity: 0.5; }
 
 .q-pct {
     color: var(--accent);
-    font-size: 1.5rem;
+    /* Small enough that "34.75%" still fits the 78px column. Records carry two
+       decimals now, so six characters is the width to design for, not three. */
+    font-size: 1.15rem;
     font-weight: 800;
     text-align: center;
-    padding-top: 4px;
+    padding-top: 8px;
 }
 .q-thumb {
     width: 128px;
@@ -512,7 +546,9 @@ form.locked .field { opacity: 0.5; }
     font-weight: 700;
     margin-bottom: 4px;
 }
-.q-field input, .q-note, .pos-box, .role-pick {
+/* select was missing here, so every dropdown in the tools rendered as a native
+   white box against a dark page - the List picker on the approve card included. */
+.q-field input, .q-field select, .q-note, .pos-box, .role-pick {
     width: 100%;
     background: var(--bg3);
     border: 1px solid var(--border);
@@ -522,7 +558,8 @@ form.locked .field { opacity: 0.5; }
     font-family: inherit;
     font-size: 0.88rem;
 }
-.q-field input:focus, .q-note:focus, .pos-box:focus, .role-pick:focus {
+.q-field input:focus, .q-field select:focus, .q-note:focus, .pos-box:focus,
+.role-pick:focus {
     outline: none;
     border-color: var(--accent);
 }
@@ -931,7 +968,43 @@ form.locked .field { opacity: 0.5; }
 .profile-score span { color: var(--muted); font-size: 0.88rem; }
 /* Percent, level, what it is worth, proof. Wider on the right than the plain
    list row, because "proof" does not fit in the 38px slot that one leaves. */
-.rec-row-p { grid-template-columns: 52px minmax(0, 1fr) 92px 62px; }
+.rec-row-p { grid-template-columns: 72px minmax(0, 1fr) 92px 62px; }
+/* A percent in the rank slot, which is sized for "#3" and not for "34.75%". */
+.rank-pct { font-size: 1.05rem; }
+/* The owner's percent doubles as the button that changes it. Dotted rather
+   than solid, so it reads as editable without shouting. */
+.rank-edit {
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted #5a5a60;
+    padding: 0 0 1px;
+    font-family: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    justify-self: center;
+}
+.rank-edit:hover { color: var(--text); border-bottom-color: var(--accent); }
+
+/* Tag pickers, and the panel where tags themselves are added and removed */
+.tag-picker-head {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin: 14px 0 7px;
+}
+.tag-picker { display: flex; flex-wrap: wrap; gap: 7px; }
+.tag-pick {
+    margin-left: 0;
+    cursor: pointer;
+    opacity: 0.4;
+    background: none;
+    transition: opacity 0.12s ease, background 0.12s ease;
+}
+.tag-pick:hover { opacity: 0.75; }
+.tag-pick.on { opacity: 1; background: var(--bg3); }
+
 .rec-worth { color: var(--muted); font-size: 0.82rem; font-weight: 700; text-align: right; }
 .rec-worth b { color: var(--text); font-weight: 800; }
 /* A run that a better one on the same level has replaced. Still shown, because
@@ -961,7 +1034,7 @@ form.locked .field { opacity: 0.5; }
     .q-actions { grid-column: 1 / -1; flex-direction: row; flex-wrap: wrap; }
     .q-actions > * { flex: 1; }
     .list-row { grid-template-columns: 44px minmax(0, 1fr) 66px 34px; }
-    .rec-row-p { grid-template-columns: 44px minmax(0, 1fr) 76px 54px; }
+    .rec-row-p { grid-template-columns: 62px minmax(0, 1fr) 76px 54px; }
     .board-row { grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; padding: 11px 12px; }
     .board-pts b { font-size: 1.05rem; }
     .drag-row { grid-template-columns: 24px 32px minmax(0, 1fr) 48px auto auto 26px; gap: 6px; }

@@ -155,14 +155,14 @@
         } else {
             const best = rows[0];
             sec.appendChild(el('div', 'section-sub',
-                'Furthest so far: ' + best.percent + '% on ' + (best.level_name || 'a level') +
+                'Furthest so far: ' + WB.fmtPercent(best.percent) + '% on ' + (best.level_name || 'a level') +
                 '. A run that a better one on the same level has replaced is faded, ' +
                 'and counts nothing.'));
 
             rows.forEach(r => {
                 const row = el('div', 'list-row rec-row-p');
                 if (!r.counts) row.classList.add('beaten');
-                row.appendChild(el('span', 'rank', r.percent + '%'));
+                row.appendChild(el('span', 'rank rank-pct', WB.fmtPercent(r.percent) + '%'));
 
                 const mid = el('div', '');
                 mid.appendChild(el('div', 'li-name', r.level_name || 'unknown level'));

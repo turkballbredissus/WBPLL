@@ -32,6 +32,53 @@ window.WB = (function () {
     function listInfo(key) {
         return LISTS.find(l => l.key === key) || LISTS[0];
     }
+
+    // Tags are rows in the database, not a list in here, because the owner adds
+    // and removes them from Admin Tools. Fetched once per page and cached, the
+    // same way the roster is. A level carries any number of them.
+    let tagsPromise = null;
+    let tagCache = [];
+    function tags() {
+        if (!tagsPromise) {
+            tagsPromise = (!client
+                ? Promise.resolve([])
+                : client.from('tags').select('slug, label, colour, sort')
+                    .order('sort').order('label')
+                    .then(res => {
+                        tagCache = (res && res.data) || [];
+                        return tagCache;
+                    }).catch(() => []));
+        }
+        return tagsPromise;
+    }
+    // Synchronous lookup for code that has already awaited tags(). Null for a
+    // slug that no longer exists, so a deleted tag simply stops rendering.
+    function tagBySlug(slug) {
+        return tagCache.find(t => t.slug === slug) || null;
+    }
+    // Throws the cache away so the next tags() goes back to the database. Admin
+    // Tools calls this after adding or removing one, or every picker on the
+    // page would keep offering the old set until a reload.
+    function reloadTags() {
+        tagsPromise = null;
+        return tags();
+    }
+
+    // Colour is a palette name, never raw CSS, so a tag the owner types cannot
+    // put a style into the page. Anything unrecognised falls back to neutral.
+    const TAG_COLOURS = ['neutral', 'green', 'blue', 'yellow', 'orange', 'red', 'purple', 'gold'];
+    function tagChip(tag) {
+        const colour = TAG_COLOURS.indexOf(tag && tag.colour) >= 0 ? tag.colour : 'neutral';
+        return el('span', 'tag-chip tag-c-' + colour, (tag && tag.label) || '');
+    }
+
+    // levels rows arrive with their tags nested two deep, because the join
+    // table sits between. Flattened here so no page has to know that shape.
+    function tagsOf(row) {
+        const links = (row && row.level_tags) || [];
+        return links.map(l => l.tags).filter(Boolean)
+            .sort((a, b) => (a.sort - b.sort) || a.label.localeCompare(b.label));
+    }
     // Which list the visitor was last looking at, so moving between pages does
     // not keep dumping them back on the impossible one.
     function currentList() {
@@ -203,6 +250,17 @@ window.WB = (function () {
         });
     }
 
+    // Records carry two decimals now, because Web Dashers reports them that way
+    // and 6.83% has to beat 6.12%. Trailing zeros are dropped, so a plain 34
+    // still reads "34" rather than "34.00". Numeric columns can arrive as
+    // strings depending on the driver, hence the Number() rather than toFixed
+    // straight on the value.
+    function fmtPercent(v) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return '0';
+        return String(Number(n.toFixed(2)));
+    }
+
     function fmtWhen(iso) {
         if (!iso) return '';
         const d = new Date(iso);
@@ -303,6 +361,12 @@ window.WB = (function () {
         el: el,
         LISTS: LISTS,
         listInfo: listInfo,
+        tags: tags,
+        reloadTags: reloadTags,
+        tagBySlug: tagBySlug,
+        tagChip: tagChip,
+        tagsOf: tagsOf,
+        TAG_COLOURS: TAG_COLOURS,
         currentList: currentList,
         rememberList: rememberList,
         people: people,
@@ -314,6 +378,7 @@ window.WB = (function () {
         profileLink: profileLink,
         errText: errText,
         fmtPoints: fmtPoints,
+        fmtPercent: fmtPercent,
         fmtWhen: fmtWhen
     };
 })();

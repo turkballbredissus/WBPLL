@@ -153,7 +153,19 @@
 
                 group.forEach(r => {
                     const row = el('div', 'list-row');
-                    row.appendChild(el('span', 'rank', r.percent + '%'));
+                    // For the owner the percent is the edit control itself, so
+                    // correcting a 6.8 that should have been 6.83 does not need
+                    // a delete and a resubmit. Everyone else sees plain text.
+                    if (WB.atLeast('owner')) {
+                        const pct = el('button', 'rank rank-pct rank-edit',
+                            WB.fmtPercent(r.percent) + '%');
+                        pct.type = 'button';
+                        pct.title = 'Change this percent';
+                        pct.addEventListener('click', () => editRecord(r));
+                        row.appendChild(pct);
+                    } else {
+                        row.appendChild(el('span', 'rank rank-pct', WB.fmtPercent(r.percent) + '%'));
+                    }
                     row.appendChild(el('div', 'li-name', r.player));
 
                     if (r.proof) {
@@ -183,9 +195,39 @@
             });
     }
 
+    // Owner only, enforced in the database. The points and the rankings follow
+    // on the next load, because both are worked out from this number rather
+    // than stored anywhere.
+    async function editRecord(rec) {
+        if (busy) return;
+        const now = WB.fmtPercent(rec.percent);
+        const typed = prompt("Change " + rec.player + "'s percent on this level.\n" +
+            'Up to two decimals, like 6.83.', now);
+        if (typed === null) return;
+
+        const s = typed.trim();
+        if (!/^\d+(\.\d{1,2})?$/.test(s)) {
+            alert('Use a number with up to two decimals, like 6.83.');
+            return;
+        }
+        const n = Number(s);
+        if (n <= 0 || n > 100) {
+            alert('A percent has to be over 0 and no more than 100.');
+            return;
+        }
+        if (s === now) return;
+
+        busy = true;
+        const { error } = await WB.client.rpc('edit_record',
+            { p_record: rec.id, p_percent: n });
+        busy = false;
+        if (error) alert(WB.errText(error));
+        refresh();
+    }
+
     async function removeRecord(rec) {
         if (busy) return;
-        if (!confirm("Take " + rec.player + "'s " + rec.percent + '% off the level?')) return;
+        if (!confirm("Take " + rec.player + "'s " + WB.fmtPercent(rec.percent) + '% off the level?')) return;
         busy = true;
         const { error } = await WB.client.from('records').delete().eq('id', rec.id);
         busy = false;
@@ -197,7 +239,7 @@
         const c = el('div', 'qcard');
         c.dataset.id = sub.id;
 
-        const pct = el('div', 'q-pct', sub.percent + '%');
+        const pct = el('div', 'q-pct', WB.fmtPercent(sub.percent) + '%');
         c.appendChild(pct);
 
         const main = el('div', 'q-main');
@@ -225,7 +267,7 @@
             (r.player || '').toLowerCase() === (sub.player || '').toLowerCase());
         if (clash) {
             main.appendChild(el('div', 'q-warn',
-                'Replaces their current ' + clash.percent + '% on this level.'));
+                'Replaces their current ' + WB.fmtPercent(clash.percent) + '% on this level.'));
         }
 
         const noteIn = el('input', 'q-note');
@@ -261,8 +303,8 @@
     async function decide(sub, what, note, cardEl) {
         if (busy) return;
         const ask = what === 'deny'
-            ? 'Deny ' + sub.player + "'s " + sub.percent + '%?'
-            : 'Put ' + sub.player + "'s " + sub.percent + '% on the level?';
+            ? 'Deny ' + sub.player + "'s " + WB.fmtPercent(sub.percent) + '%?'
+            : 'Put ' + sub.player + "'s " + WB.fmtPercent(sub.percent) + '% on the level?';
         if (!confirm(ask)) return;
 
         busy = true;
@@ -425,7 +467,7 @@
         history.forEach(h => {
             const row = el('div', 'hist-row');
             row.appendChild(el('span', 'hist-tag tag-' + h.status, h.status));
-            const what = (h.player || 'unknown') + ' · ' + h.percent + '%' +
+            const what = (h.player || 'unknown') + ' · ' + WB.fmtPercent(h.percent) + '%' +
                 (h.levels ? ' on ' + h.levels.name : '');
             row.appendChild(el('span', 'hist-what', what));
             const by = (h.reviewer_name ? 'by ' + h.reviewer_name : '') +

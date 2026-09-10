@@ -13,6 +13,7 @@
         uploaded: document.getElementById('heroUploaded'),
         media: document.getElementById('heroMedia'),
         verifier: document.getElementById('heroVerifier'),
+        tag: document.getElementById('heroTag'),
         play: document.getElementById('heroPlay'),
         records: document.getElementById('heroRecords')
     };
@@ -62,6 +63,7 @@
                 image: r.image,
                 banner: r.banner,
                 cps: r.cps,
+                tags: WB.tagsOf(r),
                 records: Array.isArray(r.records) ? r.records : []
             };
         });
@@ -74,7 +76,7 @@
         }
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, cps, records ( player, percent, proof, account_id )')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, cps, records ( player, percent, proof, account_id ), level_tags ( tags ( slug, label, colour, sort ) )')
             .eq('list', list)
             .order('position', { ascending: true });
 
@@ -115,6 +117,9 @@
                 tag.textContent = cps;
                 name.appendChild(tag);
             }
+            // However many tags the level carries, in the order the owner put
+            // them in. Untagged levels show nothing rather than a placeholder.
+            (lvl.tags || []).forEach(t => name.appendChild(WB.tagChip(t)));
             const pub = document.createElement('div');
             pub.className = 'li-pub';
             pub.textContent = 'published by ' + (lvl.publisher || 'unknown');
@@ -289,7 +294,7 @@
 
             const pct = document.createElement('div');
             pct.className = 'rec-pct';
-            pct.textContent = (Number(rec.percent) || 0) + '%';
+            pct.textContent = WB.fmtPercent(rec.percent) + '%';
 
             row.append(pos, who, pct);
 
@@ -307,6 +312,16 @@
         });
     }
 
+    // The hero holds the same chips as the row, in their own slot so a level
+    // with six tags does not push the ID badge off the line.
+    function setTag(lvl) {
+        if (!hero.tag) return;
+        hero.tag.textContent = '';
+        const list = lvl.tags || [];
+        hero.tag.classList.toggle('hidden', !list.length);
+        list.forEach(t => hero.tag.appendChild(WB.tagChip(t)));
+    }
+
     function selectLevel(i) {
         const lvl = levels[i];
         if (!lvl) return;
@@ -316,6 +331,7 @@
         hero.version.textContent = lvl.version || '2.2';
         hero.uploaded.textContent = lvl.added || 'TBD';
         hero.verifier.textContent = lvl.verifier || '—';
+        setTag(lvl);
         setPlay(lvl);
         setMedia(lvl);
         renderRecords(lvl);

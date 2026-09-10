@@ -25,10 +25,14 @@
             return '';
         },
         percent(v) {
-            if (!v.trim()) return 'Enter how far you got.';
-            if (!/^\d+$/.test(v.trim())) return 'Use a whole number, like 34.';
-            const n = Number(v);
-            if (n < 1 || n > 100) return 'Percent must be between 1 and 100.';
+            const s = v.trim();
+            if (!s) return 'Enter how far you got.';
+            // Web Dashers reports decimals, so 6.83 has to be tellable from
+            // 6.12. Two places is what the database stores; a third would be
+            // rounded away silently, so it is refused here instead.
+            if (!/^\d+(\.\d{1,2})?$/.test(s)) return 'Use a number with up to two decimals, like 6.83.';
+            const n = Number(s);
+            if (n <= 0 || n > 100) return 'Percent must be over 0 and no more than 100.';
             return '';
         },
         proof(v) {
