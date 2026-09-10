@@ -127,8 +127,10 @@
         wrap.textContent = '';
         wrap.appendChild(el('div', 'section-head', 'Records on the list'));
         wrap.appendChild(el('div', 'section-sub', WB.atLeast('owner')
-            ? 'Everything currently showing under a level. Remove one if it turns out to be wrong.'
-            : 'Everything currently showing under a level. Only the owner can take one back off.'));
+            ? 'Everything currently showing under a level. Click a percent to correct it, or remove the record outright.'
+            : WB.atLeast('admin')
+                ? 'Everything currently showing under a level. Click a percent to correct it. Only the owner can take one back off.'
+                : 'Everything currently showing under a level. Correcting and removing are for admins and the owner.'));
 
         if (!liveRecords.length) {
             wrap.appendChild(el('div', 'q-empty', 'No records accepted yet.'));
@@ -153,10 +155,7 @@
 
                 group.forEach(r => {
                     const row = el('div', 'list-row');
-                    // For the owner the percent is the edit control itself, so
-                    // correcting a 6.8 that should have been 6.83 does not need
-                    // a delete and a resubmit. Everyone else sees plain text.
-                    if (WB.atLeast('owner')) {
+                    if (WB.atLeast('admin')) {
                         const pct = el('button', 'rank rank-pct rank-edit',
                             WB.fmtPercent(r.percent) + '%');
                         pct.type = 'button';
@@ -195,9 +194,6 @@
             });
     }
 
-    // Owner only, enforced in the database. The points and the rankings follow
-    // on the next load, because both are worked out from this number rather
-    // than stored anywhere.
     async function editRecord(rec) {
         if (busy) return;
         const now = WB.fmtPercent(rec.percent);
