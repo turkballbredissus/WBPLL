@@ -602,7 +602,11 @@
             tagSave.disabled = false;
             tagSave.textContent = 'Save tags';
             if (error) {
+                // Loud on purpose. This failing quietly looks identical to it
+                // working and the tags not sticking, which is a horrible thing
+                // to debug from the outside.
                 msg.textContent = WB.errText(error);
+                alert('Tags did not save.\n\n' + WB.errText(error));
                 return;
             }
             msg.textContent = 'Tags saved.';
