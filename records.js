@@ -33,6 +33,8 @@
             if (!/^\d+(\.\d{1,2})?$/.test(s)) return 'Use a number with up to two decimals, like 6.83.';
             const n = Number(s);
             if (n <= 0 || n > 100) return 'Percent must be over 0 and no more than 100.';
+            const min = minByLevel[levelSelect.value] || 0;
+            if (n < min) return 'This level needs at least ' + WB.fmtPercent(min) + '%.';
             return '';
         },
         proof(v) {
@@ -82,6 +84,8 @@
 
     // The option value is the level's row id, so the record stays attached to
     // the right level even after the list gets reordered.
+    const minByLevel = {};
+
     function fillLevels(levels) {
         levelSelect.textContent = '';
         if (!levels.length) {
@@ -104,7 +108,10 @@
             const group = el('optgroup');
             group.label = info.long;
             mine.forEach(lvl => {
-                const opt = el('option', '', '#' + lvl.position + '  ' + (lvl.name || 'untitled'));
+                const min = Number(lvl.min_percent) || 0;
+                minByLevel[String(lvl.id)] = min;
+                const opt = el('option', '', '#' + lvl.position + '  ' + (lvl.name || 'untitled') +
+                    (min > 0 ? '  ·  min ' + WB.fmtPercent(min) + '%' : ''));
                 opt.value = String(lvl.id);
                 group.appendChild(opt);
             });
@@ -116,7 +123,7 @@
         if (!WB.client) return [];
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, list, position, name')
+            .select('id, list, position, name, min_percent')
             .order('list', { ascending: true })
             .order('position', { ascending: true });
         if (error) {

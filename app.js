@@ -14,6 +14,7 @@
         media: document.getElementById('heroMedia'),
         verifier: document.getElementById('heroVerifier'),
         tag: document.getElementById('heroTag'),
+        min: document.getElementById('heroMin'),
         play: document.getElementById('heroPlay'),
         records: document.getElementById('heroRecords')
     };
@@ -63,6 +64,7 @@
                 image: r.image,
                 banner: r.banner,
                 cps: r.cps,
+                minPercent: Number(r.min_percent) || 0,
                 tags: WB.tagsOf(r),
                 records: Array.isArray(r.records) ? r.records : []
             };
@@ -76,7 +78,7 @@
         }
         const { data, error } = await WB.client
             .from('levels')
-            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, cps, records ( player, percent, proof, account_id ), level_tags ( tags ( slug, label, colour, sort ) )')
+            .select('id, position, name, publisher, level_id, points, verifier, version, added, image, banner, cps, min_percent, records ( player, percent, proof, account_id ), level_tags ( tags ( slug, label, colour, sort ) )')
             .eq('list', list)
             .order('position', { ascending: true });
 
@@ -332,6 +334,10 @@
         hero.uploaded.textContent = lvl.added || 'TBD';
         hero.verifier.textContent = lvl.verifier || '—';
         setTag(lvl);
+        if (hero.min) {
+            hero.min.classList.toggle('hidden', !(lvl.minPercent > 0));
+            hero.min.textContent = 'Min ' + WB.fmtPercent(lvl.minPercent) + '%';
+        }
         setPlay(lvl);
         setMedia(lvl);
         renderRecords(lvl);

@@ -214,28 +214,18 @@ a { color: inherit; }
 .tag-chip {
     display: inline-block;
     margin-left: 8px;
-    padding: 2px 7px;
-    border-radius: 5px;
-    border: 1px solid var(--border);
-    background: var(--bg3);
-    color: var(--muted);
-    font-size: 0.68rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    padding: 3px 11px;
+    border-radius: 999px;
+    border: 1px solid #3b3b41;
+    background: #27272b;
+    color: #d3d3d8;
+    font-size: 0.74rem;
+    font-weight: 600;
+    line-height: 1.35;
     vertical-align: middle;
     white-space: nowrap;
 }
-/* Named palette entries, not colours the owner types - a tag can only ever pick
-   one of these, so nothing it carries can reach the stylesheet. */
-.tag-c-neutral { color: var(--muted); border-color: var(--border); }
-.tag-c-green   { color: #7fc4a0; border-color: #2c5642; }
-.tag-c-blue    { color: #86b6e0; border-color: #2a4763; }
-.tag-c-yellow  { color: #d7c078; border-color: #5d5024; }
-.tag-c-orange  { color: #e0a06a; border-color: #6a4526; }
-.tag-c-red     { color: #e07a7a; border-color: #6b2a2a; }
-.tag-c-purple  { color: #b79ae0; border-color: #4a3a6b; }
-.tag-c-gold    { color: var(--own); border-color: #6d5a12; }
+.tag-c-gold { background: #d6b13b; border-color: #d6b13b; color: #1c1600; }
 
 /* A level can carry several, so they wrap instead of stretching the line. */
 .tag-row { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
@@ -998,12 +988,12 @@ form.locked .field { opacity: 0.5; }
 .tag-pick {
     margin-left: 0;
     cursor: pointer;
-    opacity: 0.4;
-    background: none;
-    transition: opacity 0.12s ease, background 0.12s ease;
+    opacity: 0.35;
+    transition: opacity 0.12s ease, border-color 0.12s ease;
 }
-.tag-pick:hover { opacity: 0.75; }
-.tag-pick.on { opacity: 1; background: var(--bg3); }
+.tag-pick:hover { opacity: 0.7; }
+.tag-pick.on { opacity: 1; border-color: #7a7a82; }
+.tag-pick.on.tag-c-gold { border-color: #d6b13b; }
 
 .rec-worth { color: var(--muted); font-size: 0.82rem; font-weight: 700; text-align: right; }
 .rec-worth b { color: var(--text); font-weight: 800; }

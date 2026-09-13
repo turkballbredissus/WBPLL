@@ -87,7 +87,7 @@
                 .order('created_at', { ascending: true }),
             WB.client
                 .from('levels')
-                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image, cps, level_tags ( tags ( slug, label, colour, sort ) )')
+                .select('id, list, position, name, publisher, points, level_id, verifier, version, added, image, cps, min_percent, level_tags ( tags ( slug, label, colour, sort ) )')
                 .order('list', { ascending: true })
                 .order('position', { ascending: true }),
             WB.client
@@ -188,6 +188,8 @@
         // Prefilled from the submission when they offered one, blank otherwise.
         const cpsIn = textField(grid, 'Avg CPS', sub.cps == null ? '' : String(sub.cps));
         cpsIn.placeholder = 'optional';
+        const minIn = numField(grid, 'Min %', 0, 0, 100);
+        minIn.step = '0.01';
         // "...its impossible." is the joke for the impossible list; a possible
         // level has a real verifier, so that field starts empty for you to fill.
         const verIn = textField(grid, 'Verifier', asked === 'possible' ? '' : '...its impossible.');
@@ -245,6 +247,7 @@
             list: listIn.value,
             pos: clampPos(Number(posIn.value), listIn.value),
             cps: cpsIn.value.trim(),
+            minPercent: Number(minIn.value) || 0,
             tags: getTags(),
             verifier: verIn.value,
             version: gdIn.value
@@ -343,6 +346,7 @@
             p_points: 250,
             p_cps: opts.cps === '' ? null : Number(opts.cps),
             p_tags: opts.tags,
+            p_min_percent: opts.minPercent,
             p_verifier: opts.verifier,
             p_version: opts.version,
             p_added: null,
@@ -573,6 +577,7 @@
         f.points.title = 'Worked out from the place on the list';
         f.cps = editField(grid, 'Avg CPS', lvl.cps == null ? '' : String(lvl.cps));
         f.cps.placeholder = 'blank to clear';
+        f.min = editField(grid, 'Min %', WB.fmtPercent(lvl.min_percent || 0));
         f.version = editField(grid, 'Made in', lvl.version || '');
         f.added = editField(grid, 'Uploaded', lvl.added || '');
         box.appendChild(grid);
@@ -626,11 +631,23 @@
                 msg.textContent = 'CPS has to be a number.';
                 return;
             }
+            const minRaw = f.min.value.trim();
+            const minNew = minRaw === '' ? 0 : Number(minRaw);
+            if (!isFinite(minNew) || minNew < 0 || minNew > 100) {
+                msg.textContent = 'Min % has to be between 0 and 100.';
+                return;
+            }
+            const minOld = Number(lvl.min_percent) || 0;
+            if (minNew > minOld && !confirm(
+                'Raise the minimum to ' + WB.fmtPercent(minNew) + '%? ' +
+                'Every record on this level below that is removed. This cannot be undone.')) {
+                return;
+            }
 
             busy = true;
             save.disabled = true;
             save.textContent = 'Saving';
-            const { error } = await WB.client.rpc('edit_level', {
+            const { data: wiped, error } = await WB.client.rpc('edit_level', {
                 p_level: lvl.id,
                 p_name: f.name.value,
                 p_publisher: f.publisher.value,
@@ -645,7 +662,8 @@
                 p_cps: cps === '' ? null : Number(cps),
                 // Null means "leave it alone", so emptying the box needs to say
                 // so explicitly or a wrong number could never be taken back off.
-                p_clear_cps: cps === ''
+                p_clear_cps: cps === '',
+                p_min_percent: minNew === minOld ? null : minNew
             });
             busy = false;
             save.disabled = false;
@@ -654,6 +672,11 @@
             if (error) {
                 msg.textContent = WB.errText(error);
                 return;
+            }
+            if (wiped > 0) {
+                alert(wiped === 1
+                    ? '1 record was below the new minimum and has been removed.'
+                    : wiped + ' records were below the new minimum and have been removed.');
             }
             btn.textContent = 'Edit';
             box.remove();
