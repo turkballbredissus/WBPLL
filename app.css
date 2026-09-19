@@ -863,6 +863,8 @@ form.locked .field { opacity: 0.5; }
 .rename-row { display: flex; gap: 10px; align-items: center; }
 .rename-row .q-note { margin-top: 0; max-width: 280px; }
 
+.section.danger { border-top: 1px solid var(--border); padding-top: 28px; }
+
 .live-level {
     color: var(--muted);
     font-size: 0.8rem;

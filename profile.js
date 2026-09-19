@@ -142,6 +142,7 @@
         root.appendChild(head);
 
         if (isMe) root.appendChild(renameBox(p));
+        if (isMe && p.role !== 'owner') root.appendChild(deleteBox(p));
 
         // Their records. Nobody beats these levels, so this is the real scoreboard.
         const rows = (recs && recs.data) || [];
@@ -235,6 +236,41 @@
             note.textContent = 'Saved.';
             // The nav still shows the old name until the page is rebuilt.
             setTimeout(() => location.reload(), 500);
+        });
+        return box;
+    }
+
+    function deleteBox(p) {
+        const box = el('div', 'section danger');
+        box.appendChild(el('div', 'section-head', 'Delete your account'));
+        box.appendChild(el('div', 'section-sub',
+            'Removes your account, every record you have on the list, and anything you have ' +
+            'waiting in a queue. This cannot be undone.'));
+
+        const btn = el('button', 'btn-deny', 'Delete my account');
+        btn.type = 'button';
+        box.appendChild(btn);
+
+        const note = el('div', 'form-note');
+        box.appendChild(note);
+
+        btn.addEventListener('click', async () => {
+            const typed = prompt('Type your display name to confirm:\n' + p.display_name);
+            if (typed === null) return;
+            if (typed.trim() !== p.display_name) {
+                note.textContent = 'That did not match. Nothing was deleted.';
+                return;
+            }
+            btn.disabled = true;
+            btn.textContent = 'Deleting';
+            const { error } = await WB.client.rpc('delete_my_account');
+            if (error) {
+                btn.disabled = false;
+                btn.textContent = 'Delete my account';
+                note.textContent = WB.errText(error);
+                return;
+            }
+            await WB.signOut();
         });
         return box;
     }
