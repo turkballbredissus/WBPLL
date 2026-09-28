@@ -93,8 +93,7 @@
                 .order('reviewed_at', { ascending: false })
                 .limit(20)
         ];
-        jobs.push(WB.client.from('profiles')
-            .select('id, display_name, role, disabled, created_at').order('created_at'));
+        jobs.push(WB.client.rpc('staff_accounts'));
 
         const res = await Promise.all(jobs);
         peopleById = await WB.people();
