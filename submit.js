@@ -9,7 +9,7 @@
     const honeypot = document.getElementById('in-website');
     const el = WB.el;
 
-    const YT = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+    const YT = /^https:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)[A-Za-z0-9_-]{11}(?:[?&#][^\s]*)?$/i;
 
     const ASCII = /^[ -~]+$/;
     function textRule(label, min, max) {
@@ -57,7 +57,7 @@
             const t = v.trim();
             if (!t) return 'Enter a showcase link.';
             if (t.length > 300) return 'That link is too long.';
-            if (!YT.test(t)) return 'That is not a YouTube link.';
+            if (!YT.test(t)) return 'That has to be a YouTube video link starting with https://';
             return '';
         }
     };

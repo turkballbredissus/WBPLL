@@ -30,7 +30,7 @@
 
     function youtubeId(url) {
         if (typeof url !== 'string') return null;
-        const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+        const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
         return m ? m[1] : null;
     }
     function safeImageUrl(url) {
