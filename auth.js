@@ -270,13 +270,32 @@ window.WB = (function () {
         return a;
     }
 
+    const ROLE_RPC = { moderator: 'is_mod', admin: 'is_admin', owner: 'is_owner' };
+
+    async function serverAtLeast(minRole) {
+        const fn = ROLE_RPC[minRole];
+        if (!client || !session || !fn) return false;
+        try {
+            const res = await client.rpc(fn);
+            if (res.error) return null;
+            return res.data === true;
+        } catch (err) {
+            return null;
+        }
+    }
+
     async function guard(minRole, mountEl) {
         await ready();
-        if (atLeast(minRole)) return true;
+        const allowed = await serverAtLeast(minRole);
+        if (allowed === true) return true;
 
         mountEl.textContent = '';
         const box = el('div', 'gate');
-        if (!configured) {
+        if (allowed === null && session) {
+            box.appendChild(el('h1', 'form-title', 'Could not check'));
+            box.appendChild(el('p', 'form-intro',
+                'The server did not answer when asked whether this account may be here, so nothing is shown. Reload to try again.'));
+        } else if (!configured) {
             box.appendChild(el('h1', 'form-title', 'Not connected'));
             box.appendChild(el('p', 'form-intro', hasKeys
                 ? 'The Supabase library did not load, so there is nothing to sign in to. Check your connection and reload.'
