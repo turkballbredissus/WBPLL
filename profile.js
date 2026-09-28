@@ -1,11 +1,6 @@
 'use strict';
 (function () {
-    // Two views off one page: everyone on the site, and one person in detail.
-    // profile.html          -> the roster
-    // profile.html?id=<uuid> -> that account
-    //
-    // Profiles are readable by anyone, signed in or not, because a list where
-    // you cannot see who the moderators are is not much of a community.
+
     const root = document.getElementById('profileRoot');
     const el = WB.el;
 
@@ -13,7 +8,7 @@
 
     function wantedId() {
         const raw = new URLSearchParams(location.search).get('id') || '';
-        // Only ever a uuid, so a hand-edited URL cannot smuggle anything into a query.
+
         return /^[0-9a-f-]{36}$/i.test(raw) ? raw : '';
     }
 
@@ -27,8 +22,6 @@
         }
         return wantedId() ? showOne(wantedId()) : showRoster();
     });
-
-    // ------------------------------------------------------------- roster
 
     async function showRoster() {
         const [people, records, board] = await Promise.all([
@@ -48,13 +41,9 @@
             if (r.account_id) counts[r.account_id] = (counts[r.account_id] || 0) + 1;
         });
 
-        // Only people who have scored appear in the rankings, so anyone missing
-        // from this map has no points rather than an unknown number of them.
         const scores = {};
         ((board && board.data) || []).forEach(b => { scores[b.account_id] = b; });
 
-        // Disabled accounts drop off the public roster. Staff still see them in
-        // Admin Tools; there is no reason to label someone publicly.
         const list = (people.data || []).filter(p => !p.disabled).slice().sort((a, b) => {
             const d = ORDER[a.role] - ORDER[b.role];
             return d !== 0 ? d : a.display_name.localeCompare(b.display_name);
@@ -93,12 +82,8 @@
         root.appendChild(wrap);
     }
 
-    // ---------------------------------------------------------- one person
-
     async function showOne(id) {
-        // player_records hands back each run already priced, and leaderboard
-        // hands back the place. Both are worked out by the database, so a
-        // profile can never disagree with the rankings about a total.
+
         const [who, recs, board] = await Promise.all([
             WB.client.from('profiles').select('id, display_name, role, created_at')
                 .eq('id', id).maybeSingle(),
@@ -133,8 +118,7 @@
         const mine = ((board && board.data) || []).find(b => b.account_id === p.id);
         const score = el('div', 'profile-score');
         score.appendChild(el('b', '', mine ? WB.fmtPoints(mine.points) : '0'));
-        // Somebody off the board has no place to show, so it says why instead
-        // of printing a rank they do not have.
+
         score.appendChild(el('span', '', mine
             ? 'points · #' + mine.place + ' on the rankings'
             : 'points · not on the rankings yet'));
@@ -144,7 +128,6 @@
         if (isMe) root.appendChild(renameBox(p));
         if (isMe && p.role !== 'owner') root.appendChild(deleteBox(p));
 
-        // Their records. Nobody beats these levels, so this is the real scoreboard.
         const rows = (recs && recs.data) || [];
         const sec = el('div', 'section');
         sec.appendChild(el('div', 'section-head', 'Records'));
@@ -178,7 +161,7 @@
 
                 if (r.proof) {
                     const a = el('a', 'rec-proof', 'proof');
-                    a.href = r.proof;
+                    a.href = WB.safeUrl(r.proof);
                     a.target = '_blank';
                     a.rel = 'noopener noreferrer';
                     row.appendChild(a);
@@ -191,8 +174,6 @@
         root.appendChild(sec);
     }
 
-    // Only ever shown on your own profile. The database refuses a role change
-    // from here regardless, so the worst case is a wasted click.
     function renameBox(p) {
         const box = el('div', 'section');
         box.appendChild(el('div', 'section-head', 'Your name'));
@@ -220,6 +201,14 @@
                 note.textContent = 'That is too short.';
                 return;
             }
+            if (name.length > 24) {
+                note.textContent = 'That is too long. 24 characters at most.';
+                return;
+            }
+            if (!/^[ -~]+$/.test(name)) {
+                note.textContent = 'Letters, numbers and normal punctuation only.';
+                return;
+            }
             btn.disabled = true;
             btn.textContent = 'Saving';
             const { error } = await WB.client
@@ -234,7 +223,7 @@
                 return;
             }
             note.textContent = 'Saved.';
-            // The nav still shows the old name until the page is rebuilt.
+
             setTimeout(() => location.reload(), 500);
         });
         return box;

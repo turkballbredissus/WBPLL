@@ -1,9 +1,6 @@
 'use strict';
 (function () {
-    // The global rankings. Every point total on this page is worked out by the
-    // database when it is asked - nothing is stored on a profile - so accepting
-    // or removing a record moves the board straight away, and changing the
-    // curve in site_config re-scores everyone at once.
+
     const root = document.getElementById('boardRoot');
     const el = WB.el;
 
@@ -45,8 +42,7 @@
         const board = el('div', 'board');
         rows.forEach(r => {
             const row = el('div', 'board-row');
-            // Gold, silver and bronze for the top three, and a marker on your
-            // own row so you can find yourself without reading every name.
+
             if (r.place <= 3) row.classList.add('board-top' + r.place);
             if (me && me.id === r.account_id) row.classList.add('board-me');
 

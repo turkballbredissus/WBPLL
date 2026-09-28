@@ -1,9 +1,6 @@
 'use strict';
 (function () {
-    // Public, read-only leaderboard. The list lives in Supabase, so an approval
-    // in Admin Tools shows up here on the next load with nothing to push. There
-    // is no local copy of the list any more: if the database cannot be reached,
-    // the page says so rather than showing an empty list as if it were the truth.
+
     const levelListEl = document.getElementById('levelList');
     const hero = {
         title: document.getElementById('heroTitle'),
@@ -19,11 +16,9 @@
         records: document.getElementById('heroRecords')
     };
     let levels = [];
-    let people = {};   // account id -> {display_name, role}, for tinting names
+    let people = {};
     let list = WB.currentList();
 
-    // 32.50 reads as 32.5, and 30.00 as 30 - trailing zeros are noise on a
-    // number nobody measured to two decimal places anyway.
     function formatCps(v) {
         if (v === null || v === undefined || v === '') return '';
         const n = Number(v);
@@ -31,12 +26,8 @@
         return String(Number(n.toFixed(2))) + ' cps';
     }
 
-    // Points are no longer a round 250 on every level - they come off the
-    // position now - so two decimals would put "163.08" on the row. One place
-    // is plenty, and the same rounding is used everywhere else.
     const formatPoints = WB.fmtPoints;
 
-    // Detect a YouTube link (watch, youtu.be, embed, shorts) and return its 11-char id.
     function youtubeId(url) {
         if (typeof url !== 'string') return null;
         const m = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
@@ -48,9 +39,6 @@
         return /^https?:\/\//i.test(u) ? u.replace(/["\\]/g, '') : '';
     }
 
-    // The database columns and the old file format are not quite the same
-    // shape, so everything is normalised here and the rendering below never
-    // has to care which one it came from.
     function fromDatabase(rows) {
         return rows.map(function (r) {
             return {
@@ -71,7 +59,6 @@
         });
     }
 
-    // Resolves to an array on success, or a string explaining what went wrong.
     async function loadLevels() {
         if (!WB.configured) {
             return 'The list is not connected to its database yet.';
@@ -110,8 +97,7 @@
             const name = document.createElement('div');
             name.className = 'li-name';
             name.textContent = lvl.name || '';
-            // Small, next to the name, and absent entirely when nobody has
-            // worked one out yet - an empty "0 cps" would read as a fact.
+
             const cps = formatCps(lvl.cps);
             if (cps) {
                 const tag = document.createElement('span');
@@ -119,8 +105,7 @@
                 tag.textContent = cps;
                 name.appendChild(tag);
             }
-            // However many tags the level carries, in the order the owner put
-            // them in. Untagged levels show nothing rather than a placeholder.
+
             (lvl.tags || []).forEach(t => name.appendChild(WB.tagChip(t)));
             const pub = document.createElement('div');
             pub.className = 'li-pub';
@@ -146,20 +131,12 @@
         watchBanners();
     }
 
-    // A banner sits behind the row: a short looping clip, or a still image.
-    // Which formats count is decided in auth.js, and the database enforces the
-    // same set, so a hand-crafted row cannot smuggle anything else in here.
     function bannerFor(lvl, item) {
         const kind = WB.bannerKind(lvl.banner);
         if (!kind) return null;
-        // Someone who asked their system not to animate things should not be
-        // handed a screen of moving banners. A still image is fine.
+
         if (WB.reducedMotion() && WB.bannerMoves(lvl.banner)) return null;
 
-        // The media and its scrim live in one wrapper so a dead link can take
-        // both away in a single step. Removing them separately once left a
-        // full-page dark overlay behind, because an absolutely positioned
-        // scrim with no positioned parent stretches to the whole document.
         const wrap = document.createElement('div');
         wrap.className = 'banner-wrap';
 
@@ -169,11 +146,11 @@
             media.muted = true;
             media.loop = true;
             media.playsInline = true;
-            media.autoplay = false;   // started by the observer, once on screen
-            media.preload = 'none';   // and not downloaded before that
+            media.autoplay = false;
+            media.preload = 'none';
         } else {
             media = document.createElement('img');
-            media.loading = 'lazy';   // the browser handles the same job for images
+            media.loading = 'lazy';
             media.decoding = 'async';
             media.alt = '';
         }
@@ -182,13 +159,11 @@
         media.setAttribute('aria-hidden', 'true');
 
         media.addEventListener('error', () => {
-            // A dead or moved link should leave an ordinary row behind.
+
             item.classList.remove('has-banner');
             wrap.remove();
         });
 
-        // Heavier over the text, lighter towards the right, so the banner still
-        // shows without the name fighting it.
         const scrim = document.createElement('div');
         scrim.className = 'banner-scrim';
 
@@ -196,10 +171,6 @@
         return wrap;
     }
 
-    // Videos do not play until visible, and stop on the way out. Eleven clips
-    // decoding at once would make the page crawl, and downloading them for rows
-    // nobody scrolled to just spends the viewer's data. Images are left to the
-    // browser's own lazy loading.
     let bannerObserver = null;
     function watchBanners() {
         if (bannerObserver) bannerObserver.disconnect();
@@ -211,7 +182,7 @@
                 if (e.isIntersecting) {
                     if (v.preload === 'none') v.preload = 'auto';
                     const p = v.play();
-                    if (p && p.catch) p.catch(() => { /* autoplay refused; leave it still */ });
+                    if (p && p.catch) p.catch(() => {  });
                 } else {
                     v.pause();
                 }
@@ -221,9 +192,6 @@
         levelListEl.querySelectorAll('video.banner-media').forEach(v => bannerObserver.observe(v));
     }
 
-    // Web Dashers takes the level's own ID in the query string. A level with
-    // no ID, or one that is not a plain number, has nothing to open - the
-    // button is hidden rather than sending anyone to a broken page.
     function setPlay(lvl) {
         if (!hero.play) return;
         const id = String(lvl.id == null ? '' : lvl.id).trim();
@@ -254,7 +222,6 @@
         hero.media.style.backgroundImage = img ? `url("${img}")` : 'linear-gradient(135deg, #1c1c20, #0e0e10)';
     }
 
-    // Nobody finishes these levels, so a record is how far someone got. Highest first.
     function renderRecords(lvl) {
         if (!hero.records) return;
         hero.records.textContent = '';
@@ -285,8 +252,6 @@
             pos.className = 'rec-pos';
             pos.textContent = '#' + (idx + 1);
 
-            // The player name is whatever they typed, but if it came from an
-            // account we can tint it by rank and link through to the profile.
             const acct = rec.account_id ? people[rec.account_id] : null;
             const who = document.createElement('div');
             who.className = 'rec-player';
@@ -304,7 +269,7 @@
             if (proof) {
                 const a = document.createElement('a');
                 a.className = 'rec-proof';
-                a.href = proof;
+                a.href = WB.safeUrl(proof);
                 a.target = '_blank';
                 a.rel = 'noopener noreferrer';
                 a.textContent = 'proof';
@@ -314,8 +279,6 @@
         });
     }
 
-    // The hero holds the same chips as the row, in their own slot so a level
-    // with six tags does not push the ID badge off the line.
     function setTag(lvl) {
         if (!hero.tag) return;
         hero.tag.textContent = '';
@@ -344,10 +307,6 @@
         Array.from(levelListEl.children).forEach((el, idx) => el.classList.toggle('active', idx === i));
     }
 
-    // With nothing to show, the hero is an empty shell full of dashes, which
-    // reads as broken rather than as empty. Take it away and leave the reason.
-    // Two tabs above the list. Switching re-queries rather than filtering in
-    // the page, so a long list never has to be downloaded twice over.
     function renderSwitch() {
         const wrap = document.getElementById('listSwitch');
         if (!wrap) return;
@@ -371,12 +330,9 @@
                 if (l.key === list) return;
                 list = l.key;
                 WB.rememberList(list);
-                // Keep the address bar honest, so a tab can be linked to.
-                // Only the query is replaced, so the file name survives, and
-                // a browser that refuses (file:// does) must not take the
-                // click down with it.
+
                 try { history.replaceState(null, '', '?list=' + list); }
-                catch (err) { /* the switch still works, the URL just will not say so */ }
+                catch (err) {  }
                 renderSwitch();
                 refresh();
             });
@@ -422,8 +378,6 @@
         if (article) article.classList.add('hidden');
     }
 
-    // init - wait for the session so the nav is settled, then load the roster
-    // once (record names are tinted by rank) and the chosen list.
     WB.ready()
         .then(() => WB.people())
         .then(roster => {

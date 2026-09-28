@@ -7,9 +7,9 @@
     --muted: #8a8a90;
     --accent: #ff2e2e;
     --good: #33bd6b;
-    --mod: #ff4d4d;   /* moderator */
-    --adm: #5aa6ff;   /* admin */
-    --own: #ffd23f;   /* owner */
+    --mod: #ff4d4d;
+    --adm: #5aa6ff;
+    --own: #ffd23f;
 }
 * , *::before, *::after { box-sizing: border-box; }
 body {
@@ -42,7 +42,6 @@ a { color: inherit; }
 .nav .links a:hover { color: var(--text); }
 .nav .links a.active { color: var(--accent); }
 
-/* Which of the two lists you are looking at */
 .list-switch {
     display: flex;
     gap: 10px;
@@ -70,7 +69,6 @@ a { color: inherit; }
 .lswitch.active .lswitch-name { color: var(--accent); }
 .lswitch-sub { color: var(--muted); font-size: 0.76rem; }
 
-/* The same choice, inside Admin Tools */
 .list-tabs { display: flex; gap: 8px; margin: 12px 0 6px; flex-wrap: wrap; }
 .ltab {
     background: none;
@@ -88,8 +86,7 @@ a { color: inherit; }
 
 .shell {
     display: grid;
-    /* The list grows with the screen instead of sitting at one fixed width,
-       so a wide monitor gets a genuinely longer list rather than more margin. */
+
     grid-template-columns: clamp(560px, 36vw, 980px) minmax(0, 1fr);
     gap: 26px;
     padding: 26px clamp(20px, 3vw, 56px);
@@ -123,20 +120,11 @@ a { color: inherit; }
 }
 .level-item:hover { border-color: var(--accent); background: var(--bg3); }
 .level-item.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
-/* Level banners - a short looping clip behind the row, in place of the flat
-   grey card. The row keeps its own stacking context so the video cannot
-   escape the rounded corners. */
-/* Always positioned, banner or not, so nothing absolute inside a row can ever
-   escape it and cover the page. */
+
 .level-item {
     position: relative;
     isolation: isolate;
-    /* The list is a scrolling column flex container, so its rows are flex
-       items and may shrink. Normally min-height:auto stops that at the
-       content size - but that protection disappears the moment an item gets
-       overflow:hidden, which banner rows need to clip the video to their
-       corners. Without this, banner rows collapse to a sliver as soon as the
-       list is taller than the screen. */
+
     flex: 0 0 auto;
 }
 .level-item.has-banner { overflow: hidden; }
@@ -157,8 +145,7 @@ a { color: inherit; }
     z-index: 0;
     pointer-events: none;
 }
-/* Without this, a bright clip makes the name unreadable. Heavier on the left,
-   where the text sits, and lighter on the right so the clip still shows. */
+
 .banner-scrim {
     position: absolute;
     inset: 0;
@@ -169,14 +156,12 @@ a { color: inherit; }
         rgba(10, 10, 11, 0.80) 55%,
         rgba(10, 10, 11, 0.55) 100%);
 }
-/* Everything except the banner wrapper sits above it. The wrapper must keep
-   its own absolute positioning, or it becomes a grid item and eats a column. */
+
 .level-item.has-banner > *:not(.banner-wrap) {
     position: relative;
     z-index: 2;
 }
-/* Hovering a banner row lifts the scrim a little, so the clip is the reward
-   for looking at it. */
+
 .level-item.has-banner:hover .banner-scrim {
     background: linear-gradient(
         90deg,
@@ -209,8 +194,6 @@ a { color: inherit; }
 }
 .level-item.has-banner .li-cps { color: #c9c9cf; }
 
-/* How long a level runs. The colours warm up with the length so the shape of
-   the list reads at a glance, without turning into five loud badges. */
 .tag-chip {
     display: inline-block;
     margin-left: 8px;
@@ -227,7 +210,6 @@ a { color: inherit; }
 }
 .tag-c-gold { background: #d6b13b; border-color: #d6b13b; color: #1c1600; }
 
-/* A level can carry several, so they wrap instead of stretching the line. */
 .tag-row { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; }
 .tag-row .tag-chip { margin-left: 0; }
 .li-pub { color: var(--muted); font-size: 0.88rem; margin-top: 3px; }
@@ -263,8 +245,7 @@ a { color: inherit; }
     margin-top: 20px;
     width: 100%;
     aspect-ratio: 16 / 9;
-    /* A 16:9 box in a hero this wide gets tall enough to push the records off
-       the screen. Cap it and let the player letterbox itself. */
+
     max-height: 62vh;
     border-radius: 10px;
     border: 1px solid var(--border);
@@ -276,7 +257,6 @@ a { color: inherit; }
 .hero-foot { margin-top: 18px; text-align: center; color: var(--muted); font-size: 0.95rem; }
 .hero-foot b { color: var(--text); }
 
-/* Records under a level */
 .records { margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
 .rec-head { color: var(--text); font-weight: 700; font-size: 0.95rem; margin-bottom: 12px; }
 .rec-none { color: var(--muted); font-size: 0.88rem; }
@@ -306,10 +286,9 @@ a { color: inherit; }
 }
 .rec-proof:hover { color: var(--text); border-color: #4a4a50; }
 
-/* Submission form */
 .form-shell { max-width: 640px; margin: 0 auto; padding: 30px 26px 60px; }
 .form-title { margin: 0 0 10px; font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 800; line-height: 1.1; }
-/* Same as above: on the submit pages the form now follows the heading directly. */
+
 .form-shell > .form-title { margin-bottom: 28px; }
 .form-intro { color: var(--muted); font-size: 0.95rem; line-height: 1.65; margin: 0 0 28px; }
 .field { margin-bottom: 18px; }
@@ -365,7 +344,6 @@ a { color: inherit; }
 }
 .form-done b { color: var(--accent); }
 
-/* Account strip, pinned to the right of the nav */
 .nav-account { margin-left: auto; display: flex; align-items: center; gap: 12px; }
 .acct-name { color: var(--text); font-size: 0.88rem; font-weight: 700; }
 .acct-link { color: var(--muted); font-size: 0.92rem; font-weight: 600; text-decoration: none; }
@@ -400,15 +378,12 @@ a { color: inherit; }
 .role-admin { color: var(--adm); border-color: #24487d; }
 .role-owner { color: var(--own); border-color: #6d5a12; }
 
-/* A display name is tinted by rank wherever it appears, so you can tell who
-   someone is without hunting for a badge. Plain users stay the normal colour. */
 .name { font-weight: 700; }
 .name-user { color: var(--text); }
 .name-moderator { color: var(--mod); }
 .name-admin { color: var(--adm); }
 .name-owner { color: var(--own); }
 
-/* Sign in / sign up */
 .tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
 .tab {
     background: none;
@@ -425,7 +400,6 @@ a { color: inherit; }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
 
-/* The "you need an account" panel above a locked form */
 .gate {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -440,12 +414,10 @@ a { color: inherit; }
 .btn-link { display: inline-block; text-decoration: none; }
 form.locked .field { opacity: 0.5; }
 
-/* Mod Tools and Admin Tools */
 .tools-shell { max-width: 980px; margin: 0 auto; padding: 30px 26px 70px; }
 .tools-loading { color: var(--muted); font-size: 0.9rem; }
 .tools-head .form-intro { margin-bottom: 18px; }
-/* Pages with no intro paragraph under the heading. That paragraph used to be
-   what held the title off the content, so without it the gap comes from here. */
+
 .tools-head .form-title:last-child { margin-bottom: 24px; }
 .tools-bar {
     display: flex;
@@ -469,7 +441,6 @@ form.locked .field { opacity: 0.5; }
 }
 .btn-ghost:hover { color: var(--text); border-color: #4a4a50; }
 
-/* One card per pending item, straight down the page */
 .queue { display: flex; flex-direction: column; gap: 12px; }
 .qcard {
     display: grid;
@@ -488,8 +459,7 @@ form.locked .field { opacity: 0.5; }
 
 .q-pct {
     color: var(--accent);
-    /* Small enough that "34.75%" still fits the 78px column. Records carry two
-       decimals now, so six characters is the width to design for, not three. */
+
     font-size: 1.15rem;
     font-weight: 800;
     text-align: center;
@@ -536,8 +506,7 @@ form.locked .field { opacity: 0.5; }
     font-weight: 700;
     margin-bottom: 4px;
 }
-/* select was missing here, so every dropdown in the tools rendered as a native
-   white box against a dark page - the List picker on the approve card included. */
+
 .q-field input, .q-field select, .q-note, .pos-box, .role-pick {
     width: 100%;
     background: var(--bg3);
@@ -574,7 +543,6 @@ form.locked .field { opacity: 0.5; }
 
 .q-empty { color: var(--muted); font-size: 0.9rem; padding: 26px 0; }
 
-/* The list, and the accounts panel under it */
 .section { margin-top: 44px; }
 .section-head { color: var(--text); font-weight: 800; font-size: 1.05rem; }
 .section-sub { color: var(--muted); font-size: 0.84rem; margin: 6px 0 16px; line-height: 1.5; }
@@ -594,8 +562,7 @@ form.locked .field { opacity: 0.5; }
 .user-acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 .user-acts .btn-deny, .user-acts .btn-ghost { padding: 6px 13px; font-size: 0.8rem; }
 .user-acts .role-pick { width: auto; min-width: 110px; }
-/* A disabled account is dimmed rather than hidden, so it is obvious at a
-   glance who is switched off without hunting for a label. */
+
 .row-off { opacity: 0.55; }
 .off-chip {
     font-size: 0.66rem;
@@ -611,7 +578,6 @@ form.locked .field { opacity: 0.5; }
 .btn-edit, .btn-swap { padding: 6px 12px; font-size: 0.78rem; white-space: nowrap; }
 .btn-swap { letter-spacing: 0.02em; }
 
-/* The level editor, opened as its own row under the level it belongs to */
 .edit-row {
     background: var(--bg3);
     border: 1px solid var(--accent);
@@ -648,7 +614,6 @@ form.locked .field { opacity: 0.5; }
 .edit-actions { display: flex; gap: 10px; margin-top: 14px; }
 .edit-actions .btn-submit { padding: 9px 20px; font-size: 0.88rem; }
 
-/* Drag to reorder the list */
 .drag-row {
     position: relative;
     grid-template-columns: 26px 46px minmax(0, 1fr) 74px auto auto 34px;
@@ -661,7 +626,7 @@ form.locked .field { opacity: 0.5; }
     text-align: center;
     cursor: grab;
     user-select: none;
-    /* Stops a touch drag from scrolling the page instead of moving the row. */
+
     touch-action: none;
 }
 .drag-handle:hover { color: var(--text); }
@@ -673,10 +638,10 @@ form.locked .field { opacity: 0.5; }
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
 }
 .drag-row.dragging .drag-handle { cursor: grabbing; }
-/* While a row is in flight, nothing else should highlight or take a click. */
+
 .drag-list.drag-active { user-select: none; }
 .drag-list.drag-active .drag-row:not(.dragging) { pointer-events: none; }
-/* Notifications - the bell in the nav */
+
 .notif-wrap { position: relative; display: inline-flex; align-items: center; }
 .notif-btn {
     display: flex;
@@ -709,7 +674,6 @@ form.locked .field { opacity: 0.5; }
     pointer-events: none;
 }
 
-/* Notifications - the page */
 .notif-shell { max-width: 900px; margin: 0 auto; padding: 30px 26px 70px; }
 .notif-bar {
     display: flex;
@@ -742,8 +706,9 @@ form.locked .field { opacity: 0.5; }
     border-radius: 10px;
     padding: 16px 18px;
     transition: border-color 0.15s ease, background 0.15s ease;
+    overflow: hidden;
 }
-/* Anything you have not looked at yet carries the accent down its edge. */
+
 .nrow.fresh { border-left: 3px solid var(--accent); padding-left: 16px; }
 .nrow.clickable { cursor: pointer; }
 .nrow.clickable:hover { border-color: #4a4a50; background: var(--bg3); }
@@ -754,8 +719,27 @@ form.locked .field { opacity: 0.5; }
 .lb-record-approved, .lb-level-approved { color: var(--good); }
 .lb-record-denied, .lb-level-denied { color: var(--accent); }
 .lb-new-record, .lb-new-level { color: var(--adm); }
-.nrow-subject { color: var(--text); font-size: 0.98rem; overflow-wrap: anywhere; }
+.nrow-subject {
+    color: var(--text);
+    font-size: 0.98rem;
+    overflow-wrap: anywhere;
+    min-width: 0;
+    max-height: 3.2em;
+    overflow: hidden;
+}
 .nrow-when { color: var(--muted); font-size: 0.78rem; margin-left: auto; white-space: nowrap; }
+.nrow-x {
+    background: none;
+    border: 0;
+    padding: 0 2px;
+    margin-left: 4px;
+    color: var(--muted);
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+.nrow-x:hover { color: var(--accent); }
 .nrow-go {
     display: inline-block;
     margin-top: 9px;
@@ -786,11 +770,10 @@ form.locked .field { opacity: 0.5; }
     .nrow-when { margin-left: 0; width: 100%; }
 }
 
-/* Banner submission preview */
 .banner-preview {
     width: 100%;
     max-width: 520px;
-    aspect-ratio: 560 / 104;   /* the shape it will actually appear in */
+    aspect-ratio: 560 / 104;
     border-radius: 10px;
     border: 1px solid var(--border);
     overflow: hidden;
@@ -803,7 +786,6 @@ form.locked .field { opacity: 0.5; }
 .note-warn { color: #ffb54a; }
 .note-bad { color: var(--accent); }
 
-/* Banner review card */
 .bancard { grid-template-columns: 260px minmax(0, 1fr) auto; }
 .ban-preview {
     width: 260px;
@@ -824,7 +806,6 @@ form.locked .field { opacity: 0.5; }
     font-size: 0.8rem;
 }
 
-/* Players */
 .name-link { text-decoration: none; }
 .name-link:hover { text-decoration: underline; }
 .back-link {
@@ -885,7 +866,6 @@ form.locked .field { opacity: 0.5; }
 }
 .btn-remove:hover { color: var(--accent); border-color: var(--accent); }
 
-/* What has already been decided */
 .hist { margin-top: 44px; }
 .hist-head { color: var(--text); font-weight: 800; font-size: 1.05rem; margin-bottom: 14px; }
 .hist-row {
@@ -912,14 +892,12 @@ form.locked .field { opacity: 0.5; }
 .hist-by, .hist-note { color: var(--muted); }
 .hist-note { font-style: italic; }
 
-/* A box that shows a number the database owns, rather than one to type in. */
 .q-field input[readonly], .edit-field input[readonly] {
     color: var(--muted);
     background: var(--bg);
     cursor: default;
 }
 
-/* Rankings */
 .board { display: flex; flex-direction: column; gap: 8px; }
 .board-row {
     display: grid;
@@ -941,8 +919,6 @@ form.locked .field { opacity: 0.5; }
 .board-pts b { color: var(--text); font-weight: 800; font-size: 1.2rem; }
 .board-pts-label { color: var(--muted); font-size: 0.78rem; font-weight: 600; }
 
-/* Gold, silver, bronze - only on the left edge and the place number, so the
-   rows still read as one list rather than three loose badges. */
 .board-top1 { border-left-color: var(--own); }
 .board-top1 .board-place, .board-top1 .board-pts b { color: var(--own); }
 .board-top2 { border-left-color: #b9bcc4; }
@@ -950,21 +926,17 @@ form.locked .field { opacity: 0.5; }
 .board-top3 { border-left-color: #c68445; }
 .board-top3 .board-place, .board-top3 .board-pts b { color: #c68445; }
 
-/* Your own row, so you can find yourself without reading every name. */
 .board-me { background: var(--bg3); border-color: #3d3d42; }
 .board-foot { color: var(--muted); font-size: 0.8rem; line-height: 1.6; margin-top: 20px; }
 
-/* Points on a profile */
 .profile-score { display: flex; align-items: baseline; gap: 8px; margin-top: 14px; }
 .profile-score b { color: var(--accent); font-weight: 800; font-size: 1.6rem; }
 .profile-score span { color: var(--muted); font-size: 0.88rem; }
-/* Percent, level, what it is worth, proof. Wider on the right than the plain
-   list row, because "proof" does not fit in the 38px slot that one leaves. */
+
 .rec-row-p { grid-template-columns: 72px minmax(0, 1fr) 92px 62px; }
-/* A percent in the rank slot, which is sized for "#3" and not for "34.75%". */
+
 .rank-pct { font-size: 1.05rem; }
-/* The owner's percent doubles as the button that changes it. Dotted rather
-   than solid, so it reads as editable without shouting. */
+
 .rank-edit {
     background: none;
     border: 0;
@@ -977,7 +949,6 @@ form.locked .field { opacity: 0.5; }
 }
 .rank-edit:hover { color: var(--text); border-bottom-color: var(--accent); }
 
-/* Tag pickers, and the panel where tags themselves are added and removed */
 .tag-picker-head {
     color: var(--muted);
     font-size: 0.78rem;
@@ -999,8 +970,7 @@ form.locked .field { opacity: 0.5; }
 
 .rec-worth { color: var(--muted); font-size: 0.82rem; font-weight: 700; text-align: right; }
 .rec-worth b { color: var(--text); font-weight: 800; }
-/* A run that a better one on the same level has replaced. Still shown, because
-   the history is the interesting part, but plainly not counting. */
+
 .list-row.beaten { opacity: 0.5; }
 .list-row.beaten .rec-worth b { color: var(--muted); font-weight: 700; }
 

@@ -1,12 +1,6 @@
 'use strict';
 (function () {
-    // Banner submissions. Same shape as records: pick a level, send a link, a
-    // moderator decides. Nothing is uploaded here - the clip stays on whatever
-    // host the submitter used and the site only ever stores the link.
-    //
-    // The preview below the field is the point of this page. It loads the clip,
-    // checks how long it actually is, and loops it in front of you, so a bad
-    // link or a four second clip is caught here rather than in the queue.
+
     const form = document.getElementById('bannerForm');
     const btn = document.getElementById('bannerBtn');
     const note = document.getElementById('bannerNote');
@@ -35,6 +29,8 @@
                 return 'YouTube links cannot be used. Upload the file somewhere like catbox.moe and paste that link.';
             }
             if (!/^https:\/\//i.test(u)) return 'The link has to start with https://';
+            if (u.length > 400) return 'That link is too long. 400 characters at most.';
+            if (!/^[ -~]+$/.test(u)) return 'That link has characters in it that are not allowed.';
             if (!WB.bannerKind(u)) {
                 return 'That is not a direct link to a video or image file (.mp4, .webm, .png, .jpg, .jfif, .gif, .webp, .avif).';
             }
@@ -76,8 +72,6 @@
         });
     });
 
-    // ------------------------------------------------------------- preview
-
     inputEls.url.addEventListener('blur', () => {
         const u = inputEls.url.value.trim();
         if (u && !rules.url(u)) loadPreview(u);
@@ -93,8 +87,6 @@
 
         const kind = WB.bannerKind(url);
 
-        // A still image has no length to check, so loading it at all is the
-        // whole test. Only clips get held to the two second rule.
         if (kind === 'image') {
             const img = document.createElement('img');
             img.alt = '';
@@ -124,7 +116,7 @@
             const secs = v.duration;
             checked.seconds = secs;
             if (!isFinite(secs)) {
-                // Some hosts do not send a length. The moderator sees it anyway.
+
                 checked.ok = true;
                 say('Loaded. The length could not be read from this host, so make sure it is under two seconds.', 'warn');
                 return;
@@ -151,8 +143,6 @@
         previewNote.textContent = text;
         previewNote.className = 'preview-note note-' + kind;
     }
-
-    // -------------------------------------------------------------- levels
 
     function fillLevels(levels) {
         levelSelect.textContent = '';

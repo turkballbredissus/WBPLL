@@ -6,7 +6,7 @@
     <title>Submit a level | WBPLL</title>
     <meta name="description" content="Submit a level to the WBPLL list">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="stylesheet" href="app.css?v=20260919">
+    <link rel="stylesheet" href="app.css?v=20260928b">
 </head>
 <body>
     <nav class="nav">
@@ -30,13 +30,13 @@
         <form id="submitForm" novalidate>
             <div class="field" id="f-name">
                 <label for="in-name">Level name</label>
-                <input type="text" id="in-name" name="name" maxlength="100" autocomplete="off">
+                <input type="text" id="in-name" name="name" maxlength="30" autocomplete="off">
                 <span class="err"></span>
             </div>
 
             <div class="field" id="f-publisher">
                 <label for="in-publisher">Level publisher</label>
-                <input type="text" id="in-publisher" name="publisher" maxlength="60" autocomplete="off">
+                <input type="text" id="in-publisher" name="publisher" maxlength="30" autocomplete="off">
                 <span class="err"></span>
             </div>
 
@@ -102,9 +102,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="supabase-config.js?v=20260919" defer></script>
-    <script src="auth.js?v=20260919" defer></script>
-    <script src="notifications.js?v=20260919" defer></script>
-    <script src="submit.js?v=20260919" defer></script>
+    <script src="supabase-config.js?v=20260928b" defer></script>
+    <script src="auth.js?v=20260928b" defer></script>
+    <script src="notifications.js?v=20260928b" defer></script>
+    <script src="submit.js?v=20260928b" defer></script>
 </body>
 </html>

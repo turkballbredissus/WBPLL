@@ -1,7 +1,6 @@
 'use strict';
 (function () {
-    // Sign in and sign up, on one page with two modes. Supabase holds the
-    // password; nothing here ever stores or reads one back.
+
     const box = document.getElementById('authBox');
     const tabs = document.getElementById('authTabs');
     const form = document.getElementById('authForm');
@@ -26,8 +25,6 @@
 
     let mode = 'signin';
 
-    // Where to go afterwards, so the mod tools can bounce you here and back.
-    // Only a bare file name is accepted, never a full URL someone appended.
     function nextPage() {
         const raw = new URLSearchParams(location.search).get('next') || 'index.html';
         return /^[a-z0-9_-]+\.html$/i.test(raw) ? raw : 'index.html';
@@ -126,8 +123,6 @@
                 });
                 if (error) throw error;
 
-                // With email confirmation switched on, signUp returns a user but
-                // no session until they click the link in their inbox.
                 if (!data.session) {
                     finish('Check your email.',
                         'Open the confirmation link we sent to ' + email + ', then come back and sign in.');
@@ -165,7 +160,6 @@
         window.scrollTo(0, 0);
     }
 
-    // Already signed in? Say so rather than showing a form that will confuse.
     WB.ready().then(() => {
         if (WB.user()) {
             finish('You are signed in as ' + WB.displayName() + '.',

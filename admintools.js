@@ -1,22 +1,18 @@
 'use strict';
 (function () {
-    // Level review, plus the two things that only make sense next to it: the
-    // order of the live list, and who gets to review anything.
+
     const root = document.getElementById('toolsRoot');
     const el = WB.el;
 
     let queue = [];
-    let levels = [];        // every level, both lists
-    let adminList = WB.currentList();   // the one being managed below
+    let levels = [];
+    let adminList = WB.currentList();
     let history = [];
-    let people = [];        // the Accounts panel roster
-    let peopleById = {};    // account id -> {display_name, role}, for tinting names
-    let allTags = [];       // every tag that exists, for the pickers below
+    let people = [];
+    let peopleById = {};
+    let allTags = [];
     let busy = false;
 
-    // A row of tickable chips. Returns a function giving back the slugs that
-    // are on, so the caller never has to read the DOM itself. Used by both the
-    // approve card and the level editor.
     function tagPicker(mount, selected) {
         const chosen = new Set(selected || []);
         mount.textContent = '';
@@ -50,7 +46,7 @@
         root.appendChild(el('div', 'queue', ''));
         root.appendChild(el('div', 'section list-section', ''));
         root.appendChild(el('div', 'hist', ''));
-        // Admins see the roster too now, because disabling is theirs to do.
+
         root.appendChild(el('div', 'section people-section', ''));
         await refresh();
     }
@@ -133,8 +129,6 @@
         renderPeople();
     }
 
-    // ---------------------------------------------------------------- queue
-
     function card(sub) {
         const c = el('div', 'qcard lvlcard');
 
@@ -151,7 +145,7 @@
         meta.appendChild(el('span', 'id-badge', 'ID: ' + (sub.level_id || '—')));
         if (sub.showcase) {
             const a = el('a', 'rec-proof', 'Showcase');
-            a.href = sub.showcase;
+            a.href = WB.safeUrl(sub.showcase);
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             meta.appendChild(a);
@@ -169,36 +163,26 @@
         if (sub.placement) meta2.appendChild(el('span', 'q-ask', 'asked for #' + sub.placement));
         main.appendChild(meta2);
 
-        // What the admin fills in, as opposed to what the submitter sent.
         const grid = el('div', 'q-grid');
-        // Their choice of list is a request, not a decision - an easy level
-        // filed under impossible gets moved here rather than sent back.
+
         const asked = (sub.list === 'possible' || sub.list === 'impossible') ? sub.list : 'impossible';
         const listIn = selectField(grid, 'List', WB.LISTS.map(l => ({ value: l.key, text: l.long })), asked);
 
         const posIn = numField(grid, 'Place at', clampPos(sub.placement || 999, asked), 1, 999);
-        // Points are no longer typed in. A level is worth whatever its place on
-        // the list is worth, and the database keeps the column in step whenever
-        // anything moves - so a number typed here would be wrong the first time
-        // somebody dragged the list. Shown read-only so the placement decision
-        // still shows its price.
+
         const ptsIn = textField(grid, 'Points', '…');
         ptsIn.readOnly = true;
         ptsIn.title = 'Worked out from the place on the list';
-        // Prefilled from the submission when they offered one, blank otherwise.
+
         const cpsIn = textField(grid, 'Avg CPS', sub.cps == null ? '' : String(sub.cps));
         cpsIn.placeholder = 'optional';
         const minIn = numField(grid, 'Min %', 0, 0, 100);
         minIn.step = '0.01';
-        // "...its impossible." is the joke for the impossible list; a possible
-        // level has a real verifier, so that field starts empty for you to fill.
-        const verIn = textField(grid, 'Verifier', asked === 'possible' ? '' : '...its impossible.');
-        const gdIn = textField(grid, 'Made in', '2.2');
+
+        const verIn = textField(grid, 'Verifier', asked === 'possible' ? '' : '...its impossible.', 60);
+        const gdIn = textField(grid, 'Made in', '2.2', 10);
         main.appendChild(grid);
 
-        // Tags go on at approval so a level never appears on the list untagged
-        // and stays that way because nobody went back for it. Click to toggle;
-        // none selected is a perfectly good answer.
         const tagBox = el('div', 'tag-picker');
         main.appendChild(el('div', 'tag-picker-head', 'Tags'));
         main.appendChild(tagBox);
@@ -207,9 +191,6 @@
         const preview = el('div', 'q-preview');
         main.appendChild(preview);
 
-        // Only the database knows the scale, so the worth of a place is asked
-        // for rather than worked out here. The token drops a reply that arrives
-        // after a newer one, which typing a two-digit place makes likely.
         let ptsToken = 0;
         const updatePoints = async () => {
             const mine = ++ptsToken;
@@ -226,7 +207,7 @@
         };
         posIn.addEventListener('input', updatePreview);
         listIn.addEventListener('change', () => {
-            // Rank 4 of one list is not rank 4 of the other, so re-clamp it.
+
             posIn.value = clampPos(Number(posIn.value), listIn.value);
             verIn.value = listIn.value === 'possible' ? '' : '...its impossible.';
             updatePreview();
@@ -263,8 +244,6 @@
         return c;
     }
 
-    // A rank only means something inside one list, so every bit of position
-    // maths below asks which list first.
     function inList(key) {
         return levels.filter(l => (l.list || 'impossible') === key);
     }
@@ -318,12 +297,13 @@
         return sel;
     }
 
-    function textField(grid, label, value) {
+    function textField(grid, label, value, cap) {
         const f = el('label', 'q-field');
         f.appendChild(el('span', '', label));
         const i = el('input');
         i.type = 'text';
         i.value = value;
+        if (cap) i.maxLength = cap;
         f.appendChild(i);
         grid.appendChild(f);
         return i;
@@ -339,10 +319,7 @@
         const { error } = await WB.client.rpc('approve_level', {
             p_submission: sub.id,
             p_position: opts.pos,
-            // Still sent, and immediately overwritten: the levels trigger sets
-            // points from the position in the same transaction. Kept in the
-            // call rather than dropped so the argument list keeps matching the
-            // function exactly, which is what PostgREST resolves on.
+
             p_points: 250,
             p_cps: opts.cps === '' ? null : Number(opts.cps),
             p_tags: opts.tags,
@@ -388,15 +365,11 @@
         cardEl.querySelectorAll('button').forEach(b => { b.disabled = disabled; });
     }
 
-    // ----------------------------------------------------------- the list
-
     function renderList() {
         const wrap = root.querySelector('.list-section');
         wrap.textContent = '';
         wrap.appendChild(el('div', 'section-head', 'The lists'));
 
-        // One list is managed at a time. Dragging only ever reorders within
-        // the list on screen, which is also all the database will allow.
         const tabs = el('div', 'list-tabs');
         WB.LISTS.forEach(info => {
             const n = inList(info.key).length;
@@ -427,8 +400,6 @@
             return;
         }
 
-        // Rows live in their own container so the drag code can treat child
-        // index and rank as the same thing.
         const listEl = el('div', 'drag-list');
         rows.forEach(lvl => listEl.appendChild(levelRow(lvl, rows.length)));
         wrap.appendChild(listEl);
@@ -461,8 +432,6 @@
         });
         row.appendChild(jump);
 
-        // Owner only, enforced in the database. Which list a level belongs on
-        // is a claim about the level, the same as its name or its verifier.
         if (WB.atLeast('owner')) {
             const other = lvl.list === 'possible' ? 'impossible' : 'possible';
             const swap = el('button', 'btn-ghost btn-swap', '→ ' + listTag(other));
@@ -474,8 +443,6 @@
             row.appendChild(el('span', ''));
         }
 
-        // Owner only, enforced in the database. What the list claims about a
-        // level is yours to set, the same as removing one.
         if (WB.atLeast('owner')) {
             const edit = el('button', 'btn-ghost btn-edit', 'Edit');
             edit.type = 'button';
@@ -486,8 +453,6 @@
             row.appendChild(el('span', ''));
         }
 
-        // Owner only, enforced in the database. Admins place and reorder;
-        // taking a level off destroys its records, so that is the owner's.
         if (WB.atLeast('owner')) {
             const del = el('button', 'btn-remove', '×');
             del.type = 'button';
@@ -501,14 +466,10 @@
         return row;
     }
 
-
-
     function listTag(key) {
         return key === 'possible' ? 'PPLL' : 'PILL';
     }
 
-    // The rank is asked for rather than assumed, because dropping a level at
-    // the bottom of the other list is right about as often as it is wrong.
     async function moveToList(lvl, target) {
         if (busy) return;
         const count = levels.filter(l => l.list === target).length;
@@ -518,7 +479,7 @@
             count + ' level' + (count === 1 ? '' : 's') + ' right now.' +
             ' Leave it blank to put it at the bottom.',
             '');
-        if (answer === null) return;   // cancelled
+        if (answer === null) return;
 
         const wanted = answer.trim();
         if (wanted !== '' && !/^\d+$/.test(wanted)) {
@@ -540,15 +501,10 @@
         refresh();
     }
 
-    // ------------------------------------------------------------ editing
-
-    // The editor opens as its own row underneath, rather than turning the row
-    // itself into a form - the list stays readable while one level is open,
-    // and dragging is unaffected.
     function toggleEditor(row, lvl, btn) {
         const open = row.nextElementSibling &&
             row.nextElementSibling.classList.contains('edit-row');
-        // One at a time, so the list does not turn into a wall of forms.
+
         const others = row.parentNode.querySelectorAll('.edit-row');
         others.forEach(n => n.remove());
         row.parentNode.querySelectorAll('.btn-edit').forEach(b => { b.textContent = 'Edit'; });
@@ -563,14 +519,12 @@
         const grid = el('div', 'edit-grid');
 
         const f = {};
-        f.name = editField(grid, 'Name', lvl.name || '', 'wide');
-        f.publisher = editField(grid, 'Publisher', lvl.publisher || '', 'wide');
-        f.image = editField(grid, 'Showcase link', lvl.image || '', 'wide');
-        f.verifier = editField(grid, 'Verifier', lvl.verifier || '');
-        f.level_id = editField(grid, 'Level ID', lvl.level_id || '');
-        // Read-only: a level is worth whatever its place on the list is worth,
-        // and the database resets this column every time anything moves. An
-        // editable box here would just be a number that never sticks.
+        f.name = editField(grid, 'Name', lvl.name || '', 'wide', 60);
+        f.publisher = editField(grid, 'Publisher', lvl.publisher || '', 'wide', 60);
+        f.image = editField(grid, 'Showcase link', lvl.image || '', 'wide', 400);
+        f.verifier = editField(grid, 'Verifier', lvl.verifier || '', '', 60);
+        f.level_id = editField(grid, 'Level ID', lvl.level_id || '', '', 12);
+
         f.points = editField(grid, 'Points',
             lvl.points == null ? '' : WB.fmtPoints(lvl.points));
         f.points.readOnly = true;
@@ -578,17 +532,14 @@
         f.cps = editField(grid, 'Avg CPS', lvl.cps == null ? '' : String(lvl.cps));
         f.cps.placeholder = 'blank to clear';
         f.min = editField(grid, 'Min %', WB.fmtPercent(lvl.min_percent || 0));
-        f.version = editField(grid, 'Made in', lvl.version || '');
-        f.added = editField(grid, 'Uploaded', lvl.added || '');
+        f.version = editField(grid, 'Made in', lvl.version || '', '', 10);
+        f.added = editField(grid, 'Uploaded', lvl.added || '', '', 40);
         box.appendChild(grid);
 
         box.appendChild(el('div', 'edit-hint',
             'Rank and which list it is on are not here — drag it or use the box for rank. ' +
             'Points follow the rank on their own, so moving a level changes what it is worth.'));
 
-        // Tags save on their own button, not with the details. They are a
-        // different call with a different permission behind it, and folding
-        // them together would mean one Save doing two jobs.
         box.appendChild(el('div', 'tag-picker-head', 'Tags'));
         const tagBox = el('div', 'tag-picker');
         box.appendChild(tagBox);
@@ -607,9 +558,7 @@
             tagSave.disabled = false;
             tagSave.textContent = 'Save tags';
             if (error) {
-                // Loud on purpose. This failing quietly looks identical to it
-                // working and the tags not sticking, which is a horrible thing
-                // to debug from the outside.
+
                 msg.textContent = WB.errText(error);
                 alert('Tags did not save.\n\n' + WB.errText(error));
                 return;
@@ -652,16 +601,14 @@
                 p_name: f.name.value,
                 p_publisher: f.publisher.value,
                 p_level_id: f.level_id.value,
-                // Null means "leave it alone", which is right: the trigger sets
-                // it from the position the moment this update lands.
+
                 p_points: null,
                 p_verifier: f.verifier.value,
                 p_version: f.version.value,
                 p_added: f.added.value,
                 p_image: f.image.value,
                 p_cps: cps === '' ? null : Number(cps),
-                // Null means "leave it alone", so emptying the box needs to say
-                // so explicitly or a wrong number could never be taken back off.
+
                 p_clear_cps: cps === '',
                 p_min_percent: minNew === minOld ? null : minNew
             });
@@ -697,22 +644,18 @@
         return box;
     }
 
-    function editField(grid, label, value, cls) {
+    function editField(grid, label, value, cls, cap) {
         const wrap = el('label', 'edit-field' + (cls ? ' ' + cls : ''));
         wrap.appendChild(el('span', '', label));
         const input = el('input');
         input.type = 'text';
         input.value = value;
+        if (cap) input.maxLength = cap;
         wrap.appendChild(input);
         grid.appendChild(wrap);
         return input;
     }
 
-    // Drag to reorder. Rows are a uniform height, so the rank the pointer is
-    // over is just how many row-heights it has travelled. The rows in between
-    // slide out of the way to show where it would land, and nothing is written
-    // to the database until the drag ends - so letting go back where you
-    // started costs nothing.
     function enableDrag(listEl) {
         let row = null, rows = [], from = 0, to = 0, startY = 0, step = 0;
 
@@ -727,14 +670,13 @@
             to = from;
             startY = e.clientY;
 
-            // Height of one row plus the gap under it.
             const box = row.getBoundingClientRect();
             step = box.height + 8;
 
             row.classList.add('dragging');
             listEl.classList.add('drag-active');
-            // Keeps the moves coming even when the pointer outruns the row.
-            try { grip.setPointerCapture(e.pointerId); } catch (err) { /* not fatal */ }
+
+            try { grip.setPointerCapture(e.pointerId); } catch (err) {  }
         });
 
         listEl.addEventListener('pointermove', e => {
@@ -746,7 +688,6 @@
             if (next === to) return;
             to = next;
 
-            // Open a gap at the target by nudging everything between.
             rows.forEach((r, i) => {
                 if (r === row) return;
                 let shift = 0;
@@ -768,9 +709,7 @@
             row = null;
 
             if (moved && lvl) {
-                // Renumber this list on screen straight away, then let the
-                // refresh that follows the save confirm it. The other list is
-                // left exactly as it was.
+
                 const copy = rows2.slice();
                 copy.splice(to, 0, copy.splice(from, 1)[0]);
                 const renumbered = copy.map((l, i) => Object.assign({}, l, { position: i + 1 }));
@@ -807,8 +746,6 @@
         refresh();
     }
 
-    // -------------------------------------------------------------- people
-
     function renderPeople() {
         const wrap = root.querySelector('.people-section');
         wrap.textContent = '';
@@ -839,8 +776,7 @@
             if (p.role === 'owner') {
                 acts.appendChild(el('span', 'li-pub', isMe ? 'that is you' : 'owner'));
             } else {
-                // Roles stay owner-only. Disabling is an admin call, because it
-                // is reversible and undoing a mistake costs nothing.
+
                 if (owner) {
                     const sel = el('select', 'role-pick');
                     ['user', 'moderator', 'admin'].forEach(r => {
@@ -893,8 +829,6 @@
         renderPeople();
     }
 
-    // Two prompts on purpose: the first because this cannot be undone from the
-    // site, the second because what happens to their records is a real choice.
     async function deleteAccount(person) {
         if (busy) return;
         if (!confirm('Delete ' + person.display_name + '?\n\nThis cannot be undone here. ' +
@@ -941,8 +875,6 @@
         person.role = role;
         renderPeople();
     }
-
-    // ------------------------------------------------------------- history
 
     function renderHistory() {
         const wrap = root.querySelector('.hist');

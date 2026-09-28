@@ -1,8 +1,6 @@
 'use strict';
 (function () {
-    // Record submissions. Same shape as submit.js, into record_submissions,
-    // where a moderator picks them up in Mod Tools. The level dropdown is built
-    // from the live list so a record can only ever point at a real level.
+
     const form = document.getElementById('recordForm');
     const btn = document.getElementById('recordBtn');
     const note = document.getElementById('recordNote');
@@ -14,12 +12,21 @@
 
     const YT = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 
-    const rules = {
-        player(v) {
-            if (!v.trim()) return 'Enter your player name.';
-            if (v.trim().length < 2) return 'That name looks too short.';
+    const ASCII = /^[ -~]+$/;
+    function textRule(label, min, max) {
+        return function (v) {
+            const t = v.trim();
+            if (!t) return 'Enter ' + label + '.';
+            if (t.length < min) return 'That is too short.';
+            if (t.length > max) return label.charAt(0).toUpperCase() + label.slice(1) +
+                ' can be at most ' + max + ' characters.';
+            if (!ASCII.test(t)) return 'Letters, numbers and normal punctuation only.';
             return '';
-        },
+        };
+    }
+
+    const rules = {
+        player: textRule('your player name', 2, 30),
         level(v) {
             if (!v) return 'Pick which level this is for.';
             return '';
@@ -27,9 +34,7 @@
         percent(v) {
             const s = v.trim();
             if (!s) return 'Enter how far you got.';
-            // Web Dashers reports decimals, so 6.83 has to be tellable from
-            // 6.12. Two places is what the database stores; a third would be
-            // rounded away silently, so it is refused here instead.
+
             if (!/^\d+(\.\d{1,2})?$/.test(s)) return 'Use a number with up to two decimals, like 6.83.';
             const n = Number(s);
             if (n <= 0 || n > 100) return 'Percent must be over 0 and no more than 100.';
@@ -38,8 +43,10 @@
             return '';
         },
         proof(v) {
-            if (!v.trim()) return 'Enter a proof link.';
-            if (!YT.test(v.trim())) return 'That is not a YouTube link.';
+            const t = v.trim();
+            if (!t) return 'Enter a proof link.';
+            if (t.length > 300) return 'That link is too long.';
+            if (!YT.test(t)) return 'That is not a YouTube link.';
             return '';
         }
     };
@@ -82,8 +89,6 @@
         });
     });
 
-    // The option value is the level's row id, so the record stays attached to
-    // the right level even after the list gets reordered.
     const minByLevel = {};
 
     function fillLevels(levels) {
@@ -152,7 +157,7 @@
                 'Records are checked against the account that sent them, so nobody can file one under your name.',
                 true);
         } else if (!inputEls.player.value) {
-            // Prefilled, not forced: plenty of people go by a different name in game.
+
             inputEls.player.value = WB.displayName();
         }
     });

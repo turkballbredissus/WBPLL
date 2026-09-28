@@ -1,20 +1,16 @@
 'use strict';
 (function () {
-    // Record review. Moderators and up land here; every pending record shows as
-    // one card in a single run down the page, oldest first, with Accept and Deny
-    // on each. The card carries exactly what the submitter sent.
+
     const root = document.getElementById('toolsRoot');
     const el = WB.el;
 
     let queue = [];
-    let liveRecords = [];   // used to warn when accepting replaces an old record
+    let liveRecords = [];
     let history = [];
-    let people = {};        // account id -> {display_name, role}
-    let bannerQueue = [];   // banners waiting on a decision
+    let people = {};
+    let bannerQueue = [];
     let busy = false;
 
-    // The submitter's name, tinted by rank and linked to their profile, so you
-    // can see at a glance whether a stranger or a mod sent something.
     function sentBy(sub) {
         const acct = sub.account_id ? people[sub.account_id] : null;
         return acct
@@ -61,8 +57,6 @@
         list.textContent = '';
         list.appendChild(el('div', 'q-empty', 'Loading…'));
 
-        // Embedding levels(...) works off the foreign key, so a record always
-        // shows the level it belongs to even after the list gets reordered.
         const pending = WB.client
             .from('record_submissions')
             .select('id, player, percent, proof, account_id, account_name, created_at, level_row_id, levels ( name, position )')
@@ -120,8 +114,6 @@
         renderHistory();
     }
 
-    // Accepting is otherwise a one-way door: nothing else on the site can take a
-    // record back off a level once it is up.
     function renderLive() {
         const wrap = root.querySelector('.live-section');
         wrap.textContent = '';
@@ -137,7 +129,6 @@
             return;
         }
 
-        // Group under their level so the list reads the same way the site does.
         const byLevel = new Map();
         liveRecords.forEach(r => {
             const key = r.level_row_id;
@@ -169,7 +160,7 @@
 
                     if (r.proof) {
                         const a = el('a', 'rec-proof', 'proof');
-                        a.href = r.proof;
+                        a.href = WB.safeUrl(r.proof);
                         a.target = '_blank';
                         a.rel = 'noopener noreferrer';
                         row.appendChild(a);
@@ -177,9 +168,6 @@
                         row.appendChild(el('span', ''));
                     }
 
-                    // Removing is owner-only, enforced in the database. The
-                    // button is simply absent for everyone else rather than
-                    // being there to fail.
                     if (WB.atLeast('owner')) {
                         const del = el('button', 'btn-remove', '×');
                         del.type = 'button';
@@ -256,8 +244,6 @@
         if (sub.created_at) meta.appendChild(el('span', '', WB.fmtWhen(sub.created_at)));
         main.appendChild(meta);
 
-        // Accepting wipes that player's old record on the same level, so say so
-        // before it happens rather than after.
         const clash = liveRecords.find(r =>
             r.level_row_id === sub.level_row_id &&
             (r.player || '').toLowerCase() === (sub.player || '').toLowerCase());
@@ -276,7 +262,7 @@
         const actions = el('div', 'q-actions');
         if (sub.proof) {
             const proof = el('a', 'rec-proof', 'Watch proof');
-            proof.href = sub.proof;
+            proof.href = WB.safeUrl(sub.proof);
             proof.target = '_blank';
             proof.rel = 'noopener noreferrer';
             actions.appendChild(proof);
@@ -326,8 +312,6 @@
             return;
         }
 
-        // Drop it from the queue locally, then pull fresh numbers so the
-        // replace-warning on other cards stays honest.
         queue = queue.filter(q => q.id !== sub.id);
         cardEl.classList.add('gone');
         setTimeout(refresh, 180);
@@ -337,10 +321,6 @@
         cardEl.querySelectorAll('button').forEach(b => { b.disabled = disabled; });
     }
 
-    // ------------------------------------------------------------- banners
-
-    // A banner is judged by watching it, so the card loops the clip at roughly
-    // the size it will appear. The thing to look for is the seam.
     function renderBanners() {
         const wrap = root.querySelector('.banner-section');
         if (!wrap) return;
@@ -390,7 +370,7 @@
             meta.appendChild(by);
             if (sub.created_at) meta.appendChild(el('span', '', WB.fmtWhen(sub.created_at)));
             const open = el('a', 'rec-proof', 'Open the file');
-            open.href = sub.url;
+            open.href = WB.safeUrl(sub.url);
             open.target = '_blank';
             open.rel = 'noopener noreferrer';
             meta.appendChild(open);

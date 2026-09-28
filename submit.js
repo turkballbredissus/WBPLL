@@ -1,8 +1,6 @@
 'use strict';
 (function () {
-    // Level submissions. They go into the level_submissions table as pending
-    // rows and sit there, exactly as typed, until an admin reviews them in
-    // Admin Tools. An account is required so the queue shows who sent what.
+
     const form = document.getElementById('submitForm');
     const btn = document.getElementById('submitBtn');
     const note = document.getElementById('formNote');
@@ -13,18 +11,22 @@
 
     const YT = /^(?:https?:\/\/)?(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 
-    // Each rule returns an error string, or '' when the value is acceptable.
+    const ASCII = /^[ -~]+$/;
+    function textRule(label, min, max) {
+        return function (v) {
+            const t = v.trim();
+            if (!t) return 'Enter ' + label + '.';
+            if (t.length < min) return 'That is too short.';
+            if (t.length > max) return label.charAt(0).toUpperCase() + label.slice(1) +
+                ' can be at most ' + max + ' characters.';
+            if (!ASCII.test(t)) return 'Letters, numbers and normal punctuation only.';
+            return '';
+        };
+    }
+
     const rules = {
-        name(v) {
-            if (!v.trim()) return 'Enter the level name.';
-            if (v.trim().length < 2) return 'That name looks too short.';
-            return '';
-        },
-        publisher(v) {
-            if (!v.trim()) return 'Enter who published the level.';
-            if (v.trim().length < 2) return 'That name looks too short.';
-            return '';
-        },
+        name: textRule('the level name', 2, 30),
+        publisher: textRule('who published it', 2, 30),
         list(v) {
             if (!v) return 'Pick which list this belongs on.';
             return '';
@@ -41,8 +43,7 @@
             if (!/^\d{1,12}$/.test(v.trim())) return 'The level ID is digits only.';
             return '';
         },
-        // Optional: blank is a perfectly good answer, but a number that is
-        // there has to actually be a number.
+
         cps(v) {
             const t = v.trim();
             if (!t) return '';
@@ -53,8 +54,10 @@
             return '';
         },
         showcase(v) {
-            if (!v.trim()) return 'Enter a showcase link.';
-            if (!YT.test(v.trim())) return 'That is not a YouTube link.';
+            const t = v.trim();
+            if (!t) return 'Enter a showcase link.';
+            if (t.length > 300) return 'That link is too long.';
+            if (!YT.test(t)) return 'That is not a YouTube link.';
             return '';
         }
     };
@@ -94,7 +97,6 @@
         return firstBad;
     }
 
-    // Re-check a field once it has been touched, so errors clear as they are fixed.
     Object.keys(rules).forEach(key => {
         inputEls[key].addEventListener('blur', () => setError(key, rules[key](inputEls[key].value)));
         inputEls[key].addEventListener('input', () => {
@@ -104,8 +106,6 @@
         });
     });
 
-    // The form is visible either way; without an account the button is off and
-    // the reason sits above it, rather than the page looking broken.
     WB.ready().then(() => {
         inputEls.list.value = WB.currentList();
         if (!WB.configured) {
@@ -144,8 +144,6 @@
         e.preventDefault();
         note.textContent = '';
 
-        // Bots fill every field they find, including the hidden one. Drop those
-        // without telling them anything is wrong.
         if (honeypot.value) {
             showDone();
             return;
