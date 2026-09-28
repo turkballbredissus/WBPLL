@@ -23,11 +23,64 @@
         password: document.getElementById('in-password')
     };
 
+    const forgotLink = document.getElementById('forgotLink');
+    const backLink = document.getElementById('backLink');
+
+    const RECOVERY = /type=recovery/.test(location.hash) && /access_token=/.test(location.hash);
+
     let mode = 'signin';
 
     function nextPage() {
         const raw = new URLSearchParams(location.search).get('next') || 'index.html';
         return /^[a-z0-9_-]+\.html$/i.test(raw) ? raw : 'index.html';
+    }
+
+    const RESET_GAP = 60 * 1000;
+    const RESET_PER_HOUR = 3;
+    const HOUR = 60 * 60 * 1000;
+
+    function resetLog() {
+        try { return JSON.parse(localStorage.getItem('wbpll_reset') || '{}'); }
+        catch (err) { return {}; }
+    }
+
+    function resetSave(log) {
+        try { localStorage.setItem('wbpll_reset', JSON.stringify(log)); }
+        catch (err) { }
+    }
+
+    function resetKey(email) {
+        const s = email.trim().toLowerCase();
+        let h = 5381;
+        for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+        return 'e' + h.toString(36);
+    }
+
+    function resetRecent(email) {
+        return (resetLog()[resetKey(email)] || [])
+            .filter(t => Date.now() - t < HOUR);
+    }
+
+    function resetBlocked(email) {
+        const hits = resetRecent(email);
+        if (hits.length >= RESET_PER_HOUR) {
+            return 'That is ' + RESET_PER_HOUR + ' reset emails for that address in an hour, ' +
+                'which is the limit. Try again later.';
+        }
+        const since = hits.length ? Date.now() - hits[hits.length - 1] : RESET_GAP;
+        if (since < RESET_GAP) {
+            return 'Wait ' + Math.ceil((RESET_GAP - since) / 1000) +
+                ' more seconds before asking for another.';
+        }
+        return '';
+    }
+
+    function resetMark(email) {
+        const log = resetLog();
+        const keys = Object.keys(log);
+        if (keys.length > 20) delete log[keys[0]];
+        log[resetKey(email)] = resetRecent(email).concat(Date.now());
+        resetSave(log);
     }
 
     const rules = {
@@ -39,13 +92,17 @@
             return '';
         },
         email(v) {
+            if (mode === 'recover') return '';
             if (!v.trim()) return 'Enter your email.';
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim())) return 'That does not look like an email.';
             return '';
         },
         password(v) {
+            if (mode === 'forgot') return '';
             if (!v) return 'Enter your password.';
-            if (mode === 'signup' && v.length < 8) return 'Use at least 8 characters.';
+            if ((mode === 'signup' || mode === 'recover') && v.length < 8) {
+                return 'Use at least 8 characters.';
+            }
             return '';
         }
     };
@@ -74,18 +131,43 @@
         });
     });
 
+    function btnLabel() {
+        return mode === 'recover' ? 'Save password'
+            : mode === 'forgot' ? 'Send the link'
+                : mode === 'signup' ? 'Create account' : 'Sign in';
+    }
+
     function setMode(next) {
         mode = next;
         const signup = mode === 'signup';
+        const forgot = mode === 'forgot';
+        const recover = mode === 'recover';
+
         Array.from(tabs.children).forEach(t => t.classList.toggle('active', t.dataset.mode === mode));
+        tabs.classList.toggle('hidden', forgot || recover);
+
         fieldEls.name.classList.toggle('hidden', !signup);
-        title.textContent = signup ? 'Create an account' : 'Sign in';
-        intro.textContent = signup
-            ? 'One account covers submitting levels and records. Your display name is what other people see.'
-            : 'Submitting a level or a record needs an account, so every submission has a name attached to it that is actually yours.';
-        btn.textContent = signup ? 'Create account' : 'Sign in';
-        pwHint.textContent = signup ? 'At least 8 characters.' : '';
-        inputEls.password.autocomplete = signup ? 'new-password' : 'current-password';
+        fieldEls.email.classList.toggle('hidden', recover);
+        fieldEls.password.classList.toggle('hidden', forgot);
+
+        forgotLink.classList.toggle('hidden', mode !== 'signin');
+        backLink.classList.toggle('hidden', !forgot);
+
+        title.textContent = recover ? 'Set a new password'
+            : forgot ? 'Reset your password'
+                : signup ? 'Create an account' : 'Sign in';
+
+        intro.textContent = recover
+            ? 'Pick something you have not used on another site.'
+            : forgot
+                ? 'Put in the email your account uses and a link to set a new password comes back to you.'
+                : signup
+                    ? 'One account covers submitting levels and records. Your display name is what other people see.'
+                    : 'Submitting a level or a record needs an account, so every submission has a name attached to it that is actually yours.';
+
+        btn.textContent = btnLabel();
+        pwHint.textContent = (signup || recover) ? 'At least 8 characters.' : '';
+        inputEls.password.autocomplete = (signup || recover) ? 'new-password' : 'current-password';
         note.textContent = '';
         Object.keys(fieldEls).forEach(k => setError(k, ''));
     }
@@ -94,6 +176,9 @@
         const t = e.target.closest('.tab');
         if (t) setMode(t.dataset.mode);
     });
+
+    forgotLink.addEventListener('click', () => setMode('forgot'));
+    backLink.addEventListener('click', () => setMode('signin'));
 
     form.addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -111,10 +196,41 @@
 
         const email = inputEls.email.value.trim();
         const password = inputEls.password.value;
+
+        if (mode === 'forgot') {
+            const blocked = resetBlocked(email);
+            if (blocked) {
+                note.textContent = blocked;
+                return;
+            }
+        }
+
         btn.disabled = true;
-        btn.textContent = mode === 'signup' ? 'Creating' : 'Signing in';
+        btn.textContent = mode === 'signup' ? 'Creating'
+            : mode === 'forgot' ? 'Sending'
+                : mode === 'recover' ? 'Saving' : 'Signing in';
 
         try {
+            if (mode === 'forgot') {
+                resetMark(email);
+                const { error } = await WB.client.auth.resetPasswordForEmail(email, {
+                    redirectTo: location.href.split('#')[0].split('?')[0]
+                });
+                if (error) throw error;
+                finish('Check your email.',
+                    'If there is an account on ' + email + ', a link to set a new password is ' +
+                    'on its way. It stops working after an hour.');
+                return;
+            }
+
+            if (mode === 'recover') {
+                const { error } = await WB.client.auth.updateUser({ password: password });
+                if (error) throw error;
+                finish('Password changed.',
+                    'You are signed in with it already. Use it next time you sign in.');
+                return;
+            }
+
             if (mode === 'signup') {
                 const { data, error } = await WB.client.auth.signUp({
                     email: email,
@@ -135,7 +251,7 @@
             location.href = nextPage();
         } catch (err) {
             btn.disabled = false;
-            btn.textContent = mode === 'signup' ? 'Create account' : 'Sign in';
+            btn.textContent = btnLabel();
             note.textContent = friendly(err);
         }
     });
@@ -145,7 +261,15 @@
         if (/Invalid login credentials/i.test(msg)) return 'That email and password do not match an account.';
         if (/User already registered/i.test(msg)) return 'There is already an account on that email. Try signing in.';
         if (/Email not confirmed/i.test(msg)) return 'Confirm your email first, using the link that was sent to you.';
-        if (/rate limit|too many/i.test(msg)) return 'Too many tries. Wait a minute and go again.';
+        if (/rate limit|too many|only request this after|security purposes/i.test(msg)) {
+            return 'Too many tries. Wait a minute and go again.';
+        }
+        if (/should be different from the old password/i.test(msg)) {
+            return 'That is the password you already have. Pick a different one.';
+        }
+        if (/expired|invalid.*token/i.test(msg)) {
+            return 'That reset link has expired. Ask for a new one from the sign in page.';
+        }
         return WB.errText(err);
     }
 
@@ -160,7 +284,24 @@
         window.scrollTo(0, 0);
     }
 
+    function intoRecovery() {
+        box.classList.remove('hidden');
+        done.classList.add('hidden');
+        setMode('recover');
+        inputEls.password.focus();
+    }
+
+    if (WB.client) {
+        WB.client.auth.onAuthStateChange(event => {
+            if (event === 'PASSWORD_RECOVERY') intoRecovery();
+        });
+    }
+
     WB.ready().then(() => {
+        if (RECOVERY) {
+            intoRecovery();
+            return;
+        }
         if (WB.user()) {
             finish('You are signed in as ' + WB.displayName() + '.',
                 'Use the leaderboard, or sign out from the top right to switch accounts.');

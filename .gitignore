@@ -13,3 +13,7 @@ README.md
 # shared stub script too, which is why it is not just _h_*.html any more.
 _h_*
 _harness.html
+
+# Database scripts, moved out of the root. Belt and braces: *.sql already
+# covers the files, this covers anything else that lands in there.
+sql/

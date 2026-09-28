@@ -21,7 +21,7 @@ body {
 }
 a { color: inherit; }
 
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .nav {
     position: sticky;
@@ -383,6 +383,20 @@ a { color: inherit; }
 .name-moderator { color: var(--mod); }
 .name-admin { color: var(--adm); }
 .name-owner { color: var(--own); }
+
+.auth-alt { margin-top: 14px; display: flex; gap: 16px; }
+.linkish {
+    background: none;
+    border: 0;
+    padding: 0;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+}
+.linkish:hover { color: var(--text); }
 
 .tabs { display: flex; gap: 6px; margin-bottom: 22px; border-bottom: 1px solid var(--border); }
 .tab {
@@ -841,7 +855,7 @@ form.locked .field { opacity: 0.5; }
 .profile-head .form-title { margin-bottom: 12px; }
 .profile-badges { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .profile-joined { color: var(--muted); font-size: 0.85rem; }
-.rename-row { display: flex; gap: 10px; align-items: center; }
+.rename-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .rename-row .q-note { margin-top: 0; max-width: 280px; }
 
 .section.danger { border-top: 1px solid var(--border); padding-top: 28px; }
