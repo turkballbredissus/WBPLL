@@ -6,7 +6,7 @@
     <title>Account - WBPLL</title>
     <meta name="description" content="Sign in to the Web Browser Physical Levels List">
     <link rel="icon" href="favicon.png" type="image/png">
-    <link rel="stylesheet" href="app.css?v=20260928h">
+    <link rel="stylesheet" href="app.css?v=20260929c">
 </head>
 <body>
     <nav class="nav">
@@ -59,6 +59,11 @@
                     <div class="err"></div>
                 </div>
 
+                <div class="field hidden" id="f-captcha">
+                    <div id="capBox"></div>
+                    <span class="err"></span>
+                </div>
+
                 <button class="btn-submit" id="authBtn" type="submit">Sign in</button>
                 <div class="form-note" id="authNote"></div>
                 <div class="auth-alt">
@@ -71,10 +76,11 @@
         <div class="form-done hidden" id="authDone"></div>
     </div>
 
+    <script src="https://js.hcaptcha.com/1/api.js?render=explicit" async defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
-    <script src="supabase-config.js?v=20260928h" defer></script>
-    <script src="auth.js?v=20260928h" defer></script>
-    <script src="notifications.js?v=20260928h" defer></script>
-    <script src="login.js?v=20260928h" defer></script>
+    <script src="supabase-config.js?v=20260929c" defer></script>
+    <script src="auth.js?v=20260929c" defer></script>
+    <script src="notifications.js?v=20260929c" defer></script>
+    <script src="login.js?v=20260929c" defer></script>
 </body>
 </html>

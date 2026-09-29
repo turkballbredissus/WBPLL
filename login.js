@@ -25,6 +25,36 @@
 
     const forgotLink = document.getElementById('forgotLink');
     const backLink = document.getElementById('backLink');
+    const capField = document.getElementById('f-captcha');
+
+    const CAPKEY = (window.WBPILL_CONFIG || {}).HCAPTCHA_SITEKEY || '';
+    const capOn = CAPKEY.length > 10 && !/^PASTE_/.test(CAPKEY);
+    let capId = null;
+
+    function capMount() {
+        if (!capOn) return;
+        if (!window.hcaptcha || !window.hcaptcha.render) {
+            setTimeout(capMount, 200);
+            return;
+        }
+        if (capId === null) {
+            capId = window.hcaptcha.render('capBox', { sitekey: CAPKEY, theme: 'dark' });
+        }
+    }
+
+    function capToken() {
+        if (!capOn || capId === null) return undefined;
+        return window.hcaptcha.getResponse(capId) || '';
+    }
+
+    function capReset() {
+        if (capOn && capId !== null) window.hcaptcha.reset(capId);
+    }
+
+    function capError(msg) {
+        capField.classList.toggle('invalid', !!msg);
+        capField.querySelector('.err').textContent = msg;
+    }
 
     const RECOVERY = /type=recovery/.test(location.hash) && /access_token=/.test(location.hash);
 
@@ -152,6 +182,9 @@
 
         forgotLink.classList.toggle('hidden', mode !== 'signin');
         backLink.classList.toggle('hidden', !forgot);
+        capField.classList.toggle('hidden', !capOn || recover);
+        capError('');
+        if (capOn && !recover) capMount();
 
         title.textContent = recover ? 'Set a new password'
             : forgot ? 'Reset your password'
@@ -196,6 +229,13 @@
 
         const email = inputEls.email.value.trim();
         const password = inputEls.password.value;
+        const tok = capToken();
+
+        if (capOn && mode !== 'recover' && !tok) {
+            capError('Tick the box to show you are a person.');
+            return;
+        }
+        capError('');
 
         if (mode === 'forgot') {
             const blocked = resetBlocked(email);
@@ -214,7 +254,8 @@
             if (mode === 'forgot') {
                 resetMark(email);
                 const { error } = await WB.client.auth.resetPasswordForEmail(email, {
-                    redirectTo: location.href.split('#')[0].split('?')[0]
+                    redirectTo: location.href.split('#')[0].split('?')[0],
+                    captchaToken: tok
                 });
                 if (error) throw error;
                 finish('Check your email.',
@@ -235,17 +276,23 @@
                 const { data, error } = await WB.client.auth.signUp({
                     email: email,
                     password: password,
-                    options: { data: { display_name: inputEls.name.value.trim() } }
+                    options: {
+                        data: { display_name: inputEls.name.value.trim() },
+                        captchaToken: tok
+                    }
                 });
                 if (error) throw error;
 
                 if (!data.session) {
                     finish('Check your email.',
-                        'Open the confirmation link we sent to ' + email + ', then come back and sign in.');
+                        'Open the confirmation link we sent to ' + email + ', then come back and sign in. ' +
+                        'If it is not there in a minute, look in your spam folder.');
                     return;
                 }
             } else {
-                const { error } = await WB.client.auth.signInWithPassword({ email: email, password: password });
+                const { error } = await WB.client.auth.signInWithPassword({
+                    email: email, password: password, options: { captchaToken: tok }
+                });
                 if (error) throw error;
             }
             location.href = nextPage();
@@ -253,6 +300,7 @@
             btn.disabled = false;
             btn.textContent = btnLabel();
             note.textContent = friendly(err);
+            capReset();
         }
     });
 
@@ -266,6 +314,9 @@
         }
         if (/should be different from the old password/i.test(msg)) {
             return 'That is the password you already have. Pick a different one.';
+        }
+        if (/captcha/i.test(msg)) {
+            return 'The human check did not go through. Tick the box again and retry.';
         }
         if (/expired|invalid.*token/i.test(msg)) {
             return 'That reset link has expired. Ask for a new one from the sign in page.';
