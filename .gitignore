@@ -17,3 +17,8 @@ _harness.html
 # Database scripts, moved out of the root. Belt and braces: *.sql already
 # covers the files, this covers anything else that lands in there.
 sql/
+
+# Staff tool code lives in the database now and is only handed to staff.
+# These are the source copies; sql/tools/publish-tools.py uploads them.
+admintools.js
+modtools.js
